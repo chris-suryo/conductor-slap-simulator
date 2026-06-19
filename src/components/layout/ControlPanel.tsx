@@ -99,13 +99,25 @@ export function ControlPanel() {
             hint="Force between conductors scales with current² — 10× current ≈ 100× force."
           />
           <Slider
-            label="Span length"
+            label="Faulted span length"
             value={scenario.spanLengthFt}
             min={150}
             max={400}
             step={10}
             unit="ft"
             onChange={(v) => patchScenario({ spanLengthFt: v })}
+            hint="Longer spans swing more — and slap more readily."
+          />
+          <Slider
+            label="Adjacent span length"
+            value={scenario.secondSpanLengthFt}
+            min={100}
+            max={400}
+            step={10}
+            unit="ft"
+            onChange={(v) => patchScenario({ secondSpanLengthFt: v })}
+            fill={COLORS.slate}
+            hint="The comparison span on the other side of the center pole."
           />
           <Slider
             label="Phase spacing"

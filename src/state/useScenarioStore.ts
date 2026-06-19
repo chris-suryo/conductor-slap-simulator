@@ -3,9 +3,10 @@ import type {
   FaultType,
   ProtectionSettings,
   Scenario,
+  SimulationFrame,
   SimulationResult,
 } from '@/simulation/types'
-import { runSimulation } from '@/simulation/runSimulation'
+import { computeWitnessFrames, runSimulation } from '@/simulation/runSimulation'
 import { clamp } from '@/utils/math'
 import { DEFAULT_SCENARIO, PRESETS, cloneScenario } from './presets'
 
@@ -14,12 +15,15 @@ export type ViewMode = 'physics' | 'protection' | 'presentation'
 interface ScenarioState {
   scenario: Scenario
   result: SimulationResult
+  /** Motion of the adjacent comparison span (same length grid as `result.frames`). */
+  witnessFrames: SimulationFrame[]
   mode: ViewMode
 
   // Playback
   cursorMs: number
   playing: boolean
   speed: number
+  loop: boolean
   activePresetId: string | null
 
   // Scenario edits (each re-runs the simulation and replays from the start)
@@ -37,23 +41,29 @@ interface ScenarioState {
   restart: () => void
   seek: (ms: number) => void
   setSpeed: (speed: number) => void
+  toggleLoop: () => void
   advanceCursor: (deltaMs: number) => void
 }
 
 export const useScenarioStore = create<ScenarioState>((set, get) => {
   const rerun = (scenario: Scenario, presetId: string | null) => {
     const result = runSimulation(scenario)
-    set({ scenario, result, cursorMs: 0, playing: true, activePresetId: presetId })
+    const witnessFrames = computeWitnessFrames(scenario, scenario.secondSpanLengthFt, result)
+    set({ scenario, result, witnessFrames, cursorMs: 0, playing: true, activePresetId: presetId })
   }
+
+  const initialResult = runSimulation(DEFAULT_SCENARIO)
 
   return {
     scenario: cloneScenario(DEFAULT_SCENARIO),
-    result: runSimulation(DEFAULT_SCENARIO),
+    result: initialResult,
+    witnessFrames: computeWitnessFrames(DEFAULT_SCENARIO, DEFAULT_SCENARIO.secondSpanLengthFt, initialResult),
     mode: 'physics',
 
     cursorMs: 0,
     playing: true,
-    speed: 1,
+    speed: 0.5,
+    loop: true,
     activePresetId: 'protected',
 
     patchScenario: (patch) => rerun({ ...get().scenario, ...patch }, null),
@@ -82,12 +92,16 @@ export const useScenarioStore = create<ScenarioState>((set, get) => {
     restart: () => set({ cursorMs: 0, playing: true }),
     seek: (ms) => set((st) => ({ cursorMs: clamp(ms, 0, st.result.durationMs), playing: false })),
     setSpeed: (speed) => set({ speed }),
+    toggleLoop: () => set((st) => ({ loop: !st.loop })),
     advanceCursor: (deltaMs) =>
       set((st) => {
         if (!st.playing) return {}
         const dur = st.result.durationMs
         const next = st.cursorMs + deltaMs
-        if (next >= dur) return { cursorMs: dur, playing: false }
+        if (next >= dur) {
+          // Loop continuously (great for a live demo); otherwise stop at the end.
+          return st.loop ? { cursorMs: 0 } : { cursorMs: dur, playing: false }
+        }
         return { cursorMs: next }
       }),
   }

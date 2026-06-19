@@ -70,7 +70,10 @@ export interface ProtectionSettings {
 
 export interface Scenario {
   voltageClassKv: number
+  /** Length of the faulted span (the instrumented one driving protection & charts). */
   spanLengthFt: number
+  /** Length of the adjacent comparison span on the other side of the center pole. */
+  secondSpanLengthFt: number
   phaseSpacingFt: number
   sagFt: number
   faultCurrentA: number

@@ -1,9 +1,9 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
-import type { Phase } from '@/simulation/types'
+import type { Phase, SimulationFrame } from '@/simulation/types'
 import { useScenarioStore } from '@/state/useScenarioStore'
-import { dispFtOf, frameAtMs } from '@/utils/frames'
+import { dispFtOf, frameFromArray } from '@/utils/frames'
 import { COLORS } from '@/utils/labels'
 
 interface RingsProps {
@@ -12,10 +12,13 @@ interface RingsProps {
   attachY: number
   sagU: number
   dispGain: number
+  midZ: number
+  frames: SimulationFrame[]
+  dtMs: number
 }
 
 /** Expanding magnetic-field rings around one energized faulted conductor at midspan. */
-function PhaseRings({ phase, restX, attachY, sagU, dispGain }: RingsProps) {
+function PhaseRings({ phase, restX, attachY, sagU, dispGain, midZ, frames, dtMs }: RingsProps) {
   const groupRef = useRef<THREE.Group>(null)
   const r0 = useRef<THREE.Mesh>(null)
   const r1 = useRef<THREE.Mesh>(null)
@@ -23,14 +26,13 @@ function PhaseRings({ phase, restX, attachY, sagU, dispGain }: RingsProps) {
   const rings = [r0, r1, r2]
 
   useFrame((state) => {
-    const st = useScenarioStore.getState()
-    const frame = frameAtMs(st.result, st.cursorMs)
+    const frame = frameFromArray(frames, dtMs, useScenarioStore.getState().cursorMs)
     const show = frame.faultActive
     if (groupRef.current) groupRef.current.visible = show
     if (!show) return
 
     const x = restX[phase] + dispFtOf(frame, phase) * dispGain
-    groupRef.current!.position.set(x, attachY - sagU, 0)
+    groupRef.current!.position.set(x, attachY - sagU, midZ)
 
     const t = state.clock.elapsedTime
     rings.forEach((r, i) => {
@@ -62,6 +64,9 @@ export function MagneticFieldRings({
   attachY,
   sagU,
   dispGain,
+  midZ,
+  frames,
+  dtMs,
 }: {
   pair: { a: Phase; b: Phase }
   isPair: boolean
@@ -69,13 +74,15 @@ export function MagneticFieldRings({
   attachY: number
   sagU: number
   dispGain: number
+  midZ: number
+  frames: SimulationFrame[]
+  dtMs: number
 }) {
+  const shared = { restX, attachY, sagU, dispGain, midZ, frames, dtMs }
   return (
     <group>
-      <PhaseRings phase={pair.a} restX={restX} attachY={attachY} sagU={sagU} dispGain={dispGain} />
-      {isPair && (
-        <PhaseRings phase={pair.b} restX={restX} attachY={attachY} sagU={sagU} dispGain={dispGain} />
-      )}
+      <PhaseRings phase={pair.a} {...shared} />
+      {isPair && <PhaseRings phase={pair.b} {...shared} />}
     </group>
   )
 }

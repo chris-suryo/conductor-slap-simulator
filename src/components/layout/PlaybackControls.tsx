@@ -17,9 +17,11 @@ function LiveClock() {
 export function PlaybackControls() {
   const playing = useScenarioStore((s) => s.playing)
   const speed = useScenarioStore((s) => s.speed)
+  const loop = useScenarioStore((s) => s.loop)
   const togglePlay = useScenarioStore((s) => s.togglePlay)
   const restart = useScenarioStore((s) => s.restart)
   const setSpeed = useScenarioStore((s) => s.setSpeed)
+  const toggleLoop = useScenarioStore((s) => s.toggleLoop)
 
   return (
     <div className="flex items-center gap-2">
@@ -50,6 +52,22 @@ export function PlaybackControls() {
             <path d="M6 4.5v11a1 1 0 001.5.87l9-5.5a1 1 0 000-1.74l-9-5.5A1 1 0 006 4.5z" />
           </svg>
         )}
+      </button>
+
+      <button
+        onClick={toggleLoop}
+        title={loop ? 'Looping — click to stop at end' : 'Play once'}
+        className={cn(
+          'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
+          loop
+            ? 'border-energized/30 bg-energized/15 text-energized'
+            : 'border-edge bg-panel-raised text-slate-400 hover:text-slate-200',
+        )}
+      >
+        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <path d="M4 8a4 4 0 014-4h6l-2-2m2 2-2 2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16 12a4 4 0 01-4 4H6l2 2m-2-2 2-2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
       <div className="ml-1 inline-flex rounded-lg border border-edge bg-panel-muted p-0.5">

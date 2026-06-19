@@ -222,6 +222,81 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
   }
 }
 
+/**
+ * Compute the motion of an ADJACENT (comparison) span that shares the same fault current
+ * and energization timeline as the primary faulted span, but has its own length. Longer
+ * spans swing more; this is how the demo shows one span slapping while a shorter one does
+ * not. Returns a frame series aligned 1:1 with the primary result's frames.
+ */
+export function computeWitnessFrames(
+  scenario: Scenario,
+  spanLengthFt: number,
+  primary: SimulationResult,
+): SimulationFrame[] {
+  const conductor = getConductor(scenario.conductorTypeId)
+  const mp = computeMechParams({ ...scenario, spanLengthFt }, conductor)
+  const spanM = ftToM(spanLengthFt)
+  const spacingM = ftToM(scenario.phaseSpacingFt)
+  const diameterFt = conductorDiameterFt(conductor)
+  const I = scenario.faultCurrentA
+  const restX: Record<Phase, number> = { A: -spacingM, B: 0, C: spacingM }
+
+  const geom = faultGeometry(scenario.faultType)
+  const isPair = geom.isPair
+  const pa: Phase = geom.phases[0]
+  const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
+  const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
+
+  const osc: Record<Phase, OscillatorState> = {
+    A: { x: 0, v: 0 },
+    B: { x: 0, v: 0 },
+    C: { x: 0, v: 0 },
+  }
+  const dtS = primary.dtMs / 1000
+  const out: SimulationFrame[] = []
+
+  for (const pf of primary.frames) {
+    const posPa = restX[pa] + osc[pa].x
+    const posPb = restX[pb] + osc[pb].x
+    const pairSeparationFt = isPair
+      ? mToFt(Math.max(Math.abs(posPb - posPa), D_MIN_M))
+      : restPairSeparationFt
+    const clearFt = pairSeparationFt - diameterFt
+
+    const forceN: Record<Phase, number> = { A: 0, B: 0, C: 0 }
+    let forcePerLen = 0
+    if (pf.faultActive && isPair) {
+      const sepM = Math.max(Math.abs(posPb - posPa), D_MIN_M)
+      forcePerLen = forcePerLengthNPerM(I, I, sepM)
+      const fEff = EDU_FORCE_GAIN * forcePerLen * spanM
+      forceN[pa] = fEff * Math.sign(posPa - posPb || -1)
+      forceN[pb] = fEff * Math.sign(posPb - posPa || 1)
+    }
+
+    out.push({
+      tMs: pf.tMs,
+      state: pf.state,
+      energized: pf.energized,
+      faultActive: pf.faultActive,
+      currentA: pf.currentA,
+      dispAFt: mToFt(osc.A.x),
+      dispBFt: mToFt(osc.B.x),
+      dispCFt: mToFt(osc.C.x),
+      pairSeparationFt,
+      clearanceFt: clearFt,
+      forcePerLenNPerM: forcePerLen,
+      contact: classifyClearance(clearFt),
+      shot: pf.shot,
+    })
+
+    osc.A = stepOscillator(osc.A, forceN.A, mp, dtS)
+    osc.B = stepOscillator(osc.B, forceN.B, mp, dtS)
+    osc.C = stepOscillator(osc.C, forceN.C, mp, dtS)
+  }
+
+  return out
+}
+
 function resolveFinalState(
   controller: ProtectionController,
   slapOccurred: boolean,

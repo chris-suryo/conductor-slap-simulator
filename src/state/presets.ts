@@ -28,6 +28,7 @@ export const DEFAULT_PROTECTION: ProtectionSettings = {
 export const DEFAULT_SCENARIO: Scenario = {
   voltageClassKv: 12.47,
   spanLengthFt: 250,
+  secondSpanLengthFt: 180,
   phaseSpacingFt: 3.5,
   sagFt: 5,
   faultCurrentA: 7500,

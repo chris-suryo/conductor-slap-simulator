@@ -33,6 +33,15 @@ export const CONDUCTOR_CATALOG: ConductorType[] = [
     description: 'Larger all-aluminum conductor for heavier feeders.',
   },
   {
+    id: 'aac-795',
+    name: '795 kcmil AAC (Arbutus)',
+    material: 'AAC',
+    diameterIn: 1.026,
+    weightLbPerKft: 746,
+    ratedAmpacityA: 900,
+    description: 'Large all-aluminum main-feeder conductor.',
+  },
+  {
     id: 'acsr-4-0',
     name: '4/0 ACSR (Penguin 6/1)',
     material: 'ACSR',

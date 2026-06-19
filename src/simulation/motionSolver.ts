@@ -18,6 +18,7 @@ import {
   DAMPING_RATIO,
   MASS_FRACTION,
   SAG_REF_FT,
+  SPAN_REF_FT,
   SWING_PERIOD_MAX_S,
   SWING_PERIOD_MIN_S,
   SWING_PERIOD_REF_S,
@@ -45,9 +46,11 @@ export function computeMechParams(scenario: Scenario, conductor: ConductorType):
   const massPerM = lbPerKftToKgPerM(conductor.weightLbPerKft)
   const massEffKg = Math.max(massPerM * spanM * MASS_FRACTION, 0.5)
 
-  // Pendulum-like: period grows with sag (more slack -> slower swing).
+  // Pendulum-like: period grows with sag and span length, so longer spans swing more
+  // (and slap more readily) — a key reason long spans are at higher risk.
   const swingPeriodS = clamp(
-    SWING_PERIOD_REF_S * Math.sqrt(Math.max(scenario.sagFt, 0.5) / SAG_REF_FT),
+    SWING_PERIOD_REF_S *
+      Math.sqrt((Math.max(scenario.sagFt, 0.5) / SAG_REF_FT) * (scenario.spanLengthFt / SPAN_REF_FT)),
     SWING_PERIOD_MIN_S,
     SWING_PERIOD_MAX_S,
   )

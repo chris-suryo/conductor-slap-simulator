@@ -1,9 +1,9 @@
 import { useFrame } from '@react-three/fiber'
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import type { Phase } from '@/simulation/types'
+import type { Phase, SimulationFrame } from '@/simulation/types'
 import { useScenarioStore } from '@/state/useScenarioStore'
-import { dispFtOf, frameAtMs } from '@/utils/frames'
+import { dispFtOf, frameFromArray } from '@/utils/frames'
 import { COLORS } from '@/utils/labels'
 
 interface ForceArrowsProps {
@@ -13,6 +13,9 @@ interface ForceArrowsProps {
   sagU: number
   dispGain: number
   enabled: boolean
+  midZ: number
+  frames: SimulationFrame[]
+  dtMs: number
 }
 
 function makeArrow(): THREE.ArrowHelper {
@@ -23,15 +26,24 @@ function makeArrow(): THREE.ArrowHelper {
 }
 
 /** Repulsion arrows at midspan pushing the two faulted conductors apart (∝ force). */
-export function ForceArrows({ pair, restX, attachY, sagU, dispGain, enabled }: ForceArrowsProps) {
+export function ForceArrows({
+  pair,
+  restX,
+  attachY,
+  sagU,
+  dispGain,
+  enabled,
+  midZ,
+  frames,
+  dtMs,
+}: ForceArrowsProps) {
   const arrowA = useMemo(makeArrow, [])
   const arrowB = useMemo(makeArrow, [])
   const dirA = useMemo(() => new THREE.Vector3(), [])
   const dirB = useMemo(() => new THREE.Vector3(), [])
 
   useFrame(() => {
-    const st = useScenarioStore.getState()
-    const frame = frameAtMs(st.result, st.cursorMs)
+    const frame = frameFromArray(frames, dtMs, useScenarioStore.getState().cursorMs)
     const show = enabled && frame.faultActive
     arrowA.visible = show
     arrowB.visible = show
@@ -43,11 +55,11 @@ export function ForceArrows({ pair, restX, attachY, sagU, dispGain, enabled }: F
     const len = THREE.MathUtils.clamp(frame.forcePerLenNPerM / 4, 0.5, 3.0)
     const sign = Math.sign(xa - xb) || -1
 
-    arrowA.position.set(xa, y, 0)
+    arrowA.position.set(xa, y, midZ)
     arrowA.setDirection(dirA.set(sign, 0, 0))
     arrowA.setLength(len, 0.5, 0.38)
 
-    arrowB.position.set(xb, y, 0)
+    arrowB.position.set(xb, y, midZ)
     arrowB.setDirection(dirB.set(-sign, 0, 0))
     arrowB.setLength(len, 0.5, 0.38)
   })

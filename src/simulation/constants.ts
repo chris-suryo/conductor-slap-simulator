@@ -60,6 +60,8 @@ export const DAMPING_RATIO = 0.045
 export const SWING_PERIOD_REF_S = 1.0
 /** Reference sag the swing period is normalized to (ft). Period ~ sqrt(sag). */
 export const SAG_REF_FT = 5
+/** Reference span the swing period is normalized to (ft). Longer spans swing more. */
+export const SPAN_REF_FT = 250
 /** Clamp on the swing period to keep the model well-behaved (s). */
 export const SWING_PERIOD_MIN_S = 0.55
 export const SWING_PERIOD_MAX_S = 1.8
