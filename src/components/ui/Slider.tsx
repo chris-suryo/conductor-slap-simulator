@@ -26,7 +26,7 @@ export function Slider({
   unit,
   format,
   disabled,
-  fill = '#22d3ee',
+  fill = '#fd8505',
   hint,
 }: SliderProps) {
   const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))

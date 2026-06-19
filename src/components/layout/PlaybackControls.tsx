@@ -40,7 +40,7 @@ export function PlaybackControls() {
       <button
         onClick={togglePlay}
         title={playing ? 'Pause' : 'Play'}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-energized/30 bg-energized/15 text-energized transition-colors hover:bg-energized/25"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand/30 bg-brand/15 text-brand transition-colors hover:bg-brand/25"
       >
         {playing ? (
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -60,7 +60,7 @@ export function PlaybackControls() {
         className={cn(
           'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors',
           loop
-            ? 'border-energized/30 bg-energized/15 text-energized'
+            ? 'border-brand/30 bg-brand/15 text-brand'
             : 'border-edge bg-panel-raised text-slate-400 hover:text-slate-200',
         )}
       >

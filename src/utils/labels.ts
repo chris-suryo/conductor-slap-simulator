@@ -15,6 +15,8 @@ export const COLORS = {
   deenergized: '#64748b',
   arc: '#ff6a4d',
   slate: '#94a3b8',
+  brand: '#fd8505', // APC orange
+  navy: '#0c3552', // APC navy
 } as const
 
 export const STATE_META: Record<ProtectionState, { label: string; tone: BadgeTone; color: string }> = {

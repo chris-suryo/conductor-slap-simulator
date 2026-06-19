@@ -24,7 +24,7 @@ export function Select({ label, value, options, onChange, disabled }: SelectProp
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            'w-full appearance-none rounded-lg border border-edge bg-panel-raised px-3 py-2 pr-8 text-sm text-slate-100 outline-none transition-colors hover:border-edge-bright focus:border-energized/50',
+            'w-full appearance-none rounded-lg border border-edge bg-panel-raised px-3 py-2 pr-8 text-sm text-slate-100 outline-none transition-colors hover:border-edge-bright focus:border-brand/50',
             disabled && 'opacity-50',
           )}
         >

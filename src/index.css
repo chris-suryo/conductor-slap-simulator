@@ -16,12 +16,12 @@
   body {
     @apply bg-base text-slate-200 font-sans antialiased;
     margin: 0;
-    /* Subtle engineering-console backdrop: radial glow + faint grid */
-    background-color: #070a10;
+    /* APC console backdrop: brand-orange + navy glow over a navy-black base */
+    background-color: #05101a;
     background-image:
-      radial-gradient(1200px 700px at 70% -10%, rgba(34, 211, 238, 0.06), transparent 60%),
-      radial-gradient(900px 600px at 10% 110%, rgba(99, 102, 241, 0.05), transparent 55%),
-      linear-gradient(to bottom, #080b12, #060810);
+      radial-gradient(1200px 700px at 76% -10%, rgba(253, 133, 5, 0.07), transparent 60%),
+      radial-gradient(950px 620px at 6% 112%, rgba(12, 53, 82, 0.4), transparent 55%),
+      linear-gradient(to bottom, #06121e, #040b14);
   }
 
   * {
@@ -64,10 +64,10 @@ input[type='range'].csim-range {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--range-fill, #22d3ee) 0%,
-    var(--range-fill, #22d3ee) var(--range-pct, 50%),
-    #1d2734 var(--range-pct, 50%),
-    #1d2734 100%
+    var(--range-fill, #fd8505) 0%,
+    var(--range-fill, #fd8505) var(--range-pct, 50%),
+    #173049 var(--range-pct, 50%),
+    #173049 100%
   );
   outline: none;
   cursor: pointer;
@@ -79,22 +79,22 @@ input[type='range'].csim-range::-webkit-slider-thumb {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #e2e8f0;
-  border: 2px solid var(--range-fill, #22d3ee);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+  background: #f1f5f9;
+  border: 2px solid var(--range-fill, #fd8505);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
   transition: box-shadow 0.15s ease;
 }
 
 input[type='range'].csim-range::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.18);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.14);
 }
 
 input[type='range'].csim-range::-moz-range-thumb {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #e2e8f0;
-  border: 2px solid var(--range-fill, #22d3ee);
+  background: #f1f5f9;
+  border: 2px solid var(--range-fill, #fd8505);
 }
 
 input[type='range'].csim-range:disabled {

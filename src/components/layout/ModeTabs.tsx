@@ -19,7 +19,7 @@ export function ModeTabs() {
           className={cn(
             'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
             mode === t.id
-              ? 'bg-panel-raised text-slate-100 shadow-sm'
+              ? 'bg-brand/15 text-brand shadow-sm'
               : 'text-slate-400 hover:text-slate-200',
           )}
         >

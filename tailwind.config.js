@@ -4,19 +4,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Console surfaces (deep, slightly blue-tinted near-black)
-        base: '#070a10',
+        // APC Relay brand: navy (#0C3552) + orange (#FD8505) on black.
+        // Console surfaces are navy-tinted darks derived from the brand navy.
+        base: '#05101a',
         panel: {
-          DEFAULT: '#0e141d',
-          muted: '#0a0f17',
-          raised: '#131b26',
+          DEFAULT: '#0a1a28',
+          muted: '#071320',
+          raised: '#0f2638',
         },
         edge: {
-          DEFAULT: '#1d2734',
-          soft: '#161e29',
-          bright: '#2b3a4d',
+          DEFAULT: '#1d3a54',
+          soft: '#15293d',
+          bright: '#2f5474',
         },
-        // Semantic status colors
+        // APC brand accents
+        brand: {
+          DEFAULT: '#fd8505', // APC orange (wordmark / primary accent)
+          dark: '#d97005',
+          light: '#ffab47',
+        },
+        navy: {
+          DEFAULT: '#0c3552', // APC navy
+          light: '#164a72',
+          dark: '#0a2740',
+        },
+        // Semantic status colors (functional — kept distinct from brand chrome)
         energized: '#22d3ee', // cyan — line energized / current flowing
         healthy: '#34d399', // emerald — healthy / restored
         caution: '#fbbf24', // amber — near miss / warning
