@@ -75,7 +75,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
   // When the relay never trips, clear near the first outward swing peak (~half a swing
   // period), where the conductor is at maximum displacement with ~zero velocity — so the
   // rebound is large and the slap is reliable rather than phase-dependent.
-  const noProtClearMs = tuning.noProtClearMs ?? Math.min(900, Math.max(350, 0.5 * mp.swingPeriodS * 1000))
+  const noProtClearMs = tuning.noProtClearMs ?? Math.min(1400, Math.max(350, 0.5 * mp.swingPeriodS * 1000))
   const spanM = ftToM(scenario.spanLengthFt)
   const spacingM = ftToM(scenario.phaseSpacingFt)
   const diameterFt = conductorDiameterFt(conductor)

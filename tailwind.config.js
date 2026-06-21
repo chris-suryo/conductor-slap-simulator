@@ -1,45 +1,62 @@
 /** @type {import('tailwindcss').Config} */
+//
+// Colors map to CSS custom properties (declared in src/index.css + brand vars from
+// src/theme/brand.ts via applyTheme). The `rgb(var(--token) / <alpha-value>)` form keeps
+// Tailwind opacity modifiers (e.g. `bg-panel/50`) working AND lets every utility flip with
+// the dark/light theme automatically — see src/theme/tokens.ts.
+//
+const withVar = (name) => `rgb(var(${name}) / <alpha-value>)`
+
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // APC Relay brand: navy (#0C3552) + orange (#FD8505) on black.
-        // Console surfaces are navy-tinted darks derived from the brand navy.
-        base: '#05101a',
+        // Surfaces (swap per theme)
+        base: withVar('--base'),
         panel: {
-          DEFAULT: '#0a1a28',
-          muted: '#071320',
-          raised: '#0f2638',
+          DEFAULT: withVar('--panel'),
+          muted: withVar('--panel-muted'),
+          raised: withVar('--panel-raised'),
         },
         edge: {
-          DEFAULT: '#1d3a54',
-          soft: '#15293d',
-          bright: '#2f5474',
+          DEFAULT: withVar('--edge'),
+          soft: withVar('--edge-soft'),
+          bright: withVar('--edge-bright'),
         },
-        // APC brand accents
+        scene: withVar('--scene-bg'),
+        // Semantic text (swap per theme) — `text-fg`, `text-fg-muted`, `text-fg-faint`
+        fg: {
+          DEFAULT: withVar('--text-1'),
+          muted: withVar('--text-2'),
+          faint: withVar('--text-3'),
+        },
+        // APC brand accents (from brand.ts; constant across themes)
         brand: {
-          DEFAULT: '#fd8505', // APC orange (wordmark / primary accent)
-          dark: '#d97005',
-          light: '#ffab47',
+          DEFAULT: withVar('--brand'),
+          dark: withVar('--brand-dark'),
+          light: withVar('--brand-light'),
         },
         navy: {
-          DEFAULT: '#0c3552', // APC navy
-          light: '#164a72',
-          dark: '#0a2740',
+          DEFAULT: withVar('--navy'),
+          light: withVar('--navy-light'),
+          dark: withVar('--navy-dark'),
         },
-        // Semantic status colors (functional — kept distinct from brand chrome)
-        energized: '#22d3ee', // cyan — line energized / current flowing
-        healthy: '#34d399', // emerald — healthy / restored
-        caution: '#fbbf24', // amber — near miss / warning
-        fault: '#f87171', // red — fault / slap
-        arc: '#ff6a4d', // hot orange-red — arc flash
-        deenergized: '#64748b', // slate — breaker open / de-energized
+        'on-accent': withVar('--on-accent'),
+        // Semantic status colors (constant across themes — functional meaning)
+        energized: withVar('--energized'),
+        healthy: withVar('--healthy'),
+        caution: withVar('--caution'),
+        fault: withVar('--fault'),
+        arc: withVar('--arc'),
+        deenergized: withVar('--deenergized'),
       },
       fontFamily: {
         sans: [
+          'Inter Variable',
+          'Inter',
           '-apple-system',
-          'SF Pro Display',
           'SF Pro Text',
           'system-ui',
           'Segoe UI',
@@ -47,16 +64,18 @@ export default {
           'sans-serif',
         ],
         mono: [
+          'JetBrains Mono Variable',
+          'JetBrains Mono',
           'ui-monospace',
           'SF Mono',
           'SFMono-Regular',
-          'JetBrains Mono',
           'Menlo',
           'monospace',
         ],
       },
       boxShadow: {
-        panel: '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.7)',
+        panel: '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 10px 30px -16px rgba(2,8,18,0.55)',
+        'panel-light': '0 1px 2px 0 rgba(15,23,42,0.04), 0 12px 28px -18px rgba(15,23,42,0.22)',
         glow: '0 0 24px -4px var(--tw-shadow-color)',
       },
       keyframes: {

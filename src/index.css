@@ -2,9 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme variables. NEUTRALS mirror src/theme/tokens.ts (keep in sync). STATUS + BRAND defaults
+ * live on :root so first paint is correct before JS runs; brand values are re-asserted at
+ * runtime from src/theme/brand.ts via applyTheme().
+ */
 @layer base {
   :root {
+    /* Status (constant across themes) — mirrors STATUS in src/theme/tokens.ts */
+    --energized: 34 211 238;
+    --healthy: 52 211 153;
+    --caution: 251 191 36;
+    --fault: 248 113 113;
+    --arc: 255 106 77;
+    --deenergized: 100 116 139;
+
+    /* Brand defaults (overridden at runtime from brand.ts) */
+    --brand: 253 133 5;
+    --brand-dark: 217 112 5;
+    --brand-light: 255 171 71;
+    --navy: 12 53 82;
+    --navy-light: 22 74 114;
+    --navy-dark: 10 39 64;
+    --on-accent: 6 18 30;
+  }
+
+  /* Dark theme neutrals (baseline) */
+  :root,
+  .dark {
+    --base: 5 16 26;
+    --panel: 10 26 40;
+    --panel-muted: 7 19 32;
+    --panel-raised: 15 38 56;
+    --edge-soft: 21 41 61;
+    --edge: 29 58 84;
+    --edge-bright: 47 84 116;
+    --text-1: 226 232 240;
+    --text-2: 148 163 184;
+    --text-3: 100 116 139;
+    --grid-line: 22 32 44;
+    --tooltip-bg: 14 20 29;
+    --playhead: 248 250 252;
+    --scene-bg: 8 15 26;
     color-scheme: dark;
+  }
+
+  /* Light theme neutrals */
+  .light {
+    --base: 237 242 248;
+    --panel: 255 255 255;
+    --panel-muted: 241 245 250;
+    --panel-raised: 255 255 255;
+    --edge-soft: 226 232 240;
+    --edge: 203 213 225;
+    --edge-bright: 148 163 184;
+    --text-1: 15 23 42;
+    --text-2: 71 85 105;
+    --text-3: 100 116 139;
+    --grid-line: 226 232 240;
+    --tooltip-bg: 255 255 255;
+    --playhead: 15 23 42;
+    --scene-bg: 224 231 240;
+    color-scheme: light;
   }
 
   html,
@@ -14,18 +73,35 @@
   }
 
   body {
-    @apply bg-base text-slate-200 font-sans antialiased;
+    @apply bg-base text-fg font-sans antialiased;
     margin: 0;
-    /* APC console backdrop: brand-orange + navy glow over a navy-black base */
-    background-color: #05101a;
+  }
+
+  /* Dark backdrop: brand-orange + navy glow over a navy-black base. */
+  .dark body {
+    background-color: rgb(var(--base));
     background-image:
       radial-gradient(1200px 700px at 76% -10%, rgba(253, 133, 5, 0.07), transparent 60%),
       radial-gradient(950px 620px at 6% 112%, rgba(12, 53, 82, 0.4), transparent 55%),
       linear-gradient(to bottom, #06121e, #040b14);
   }
 
+  /* Light backdrop: airy near-white with a faint brand wash. */
+  .light body {
+    background-color: rgb(var(--base));
+    background-image:
+      radial-gradient(1100px 640px at 80% -12%, rgba(253, 133, 5, 0.06), transparent 60%),
+      radial-gradient(900px 600px at 4% 110%, rgba(12, 53, 82, 0.06), transparent 55%),
+      linear-gradient(to bottom, #f7fafc, #eef2f7);
+  }
+
   * {
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tighter, engineering-grade numerals on monospace readouts. */
+  .font-mono {
+    font-feature-settings: 'tnum' 1, 'cv01' 1, 'ss01' 1;
   }
 }
 
@@ -33,13 +109,16 @@
   .panel {
     @apply rounded-xl border border-edge bg-panel shadow-panel;
   }
+  .light .panel {
+    @apply shadow-panel-light;
+  }
 
   .panel-muted {
     @apply rounded-lg border border-edge-soft bg-panel-muted;
   }
 
   .label-eyebrow {
-    @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500;
+    @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-faint;
   }
 
   .stat-value {
@@ -49,8 +128,8 @@
   /* Faint grid overlay used behind the 3D viewport */
   .grid-backdrop {
     background-image:
-      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+      linear-gradient(rgb(var(--text-2) / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--text-2) / 0.05) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 }
@@ -64,10 +143,10 @@ input[type='range'].csim-range {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--range-fill, #fd8505) 0%,
-    var(--range-fill, #fd8505) var(--range-pct, 50%),
-    #173049 var(--range-pct, 50%),
-    #173049 100%
+    var(--range-fill, rgb(var(--brand))) 0%,
+    var(--range-fill, rgb(var(--brand))) var(--range-pct, 50%),
+    rgb(var(--edge)) var(--range-pct, 50%),
+    rgb(var(--edge)) 100%
   );
   outline: none;
   cursor: pointer;
@@ -79,22 +158,22 @@ input[type='range'].csim-range::-webkit-slider-thumb {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #f1f5f9;
-  border: 2px solid var(--range-fill, #fd8505);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+  background: rgb(var(--panel-raised));
+  border: 2px solid var(--range-fill, rgb(var(--brand)));
+  box-shadow: 0 0 0 3px rgb(var(--brand) / 0.12);
   transition: box-shadow 0.15s ease;
 }
 
 input[type='range'].csim-range::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 5px rgb(var(--brand) / 0.2);
 }
 
 input[type='range'].csim-range::-moz-range-thumb {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #f1f5f9;
-  border: 2px solid var(--range-fill, #fd8505);
+  background: rgb(var(--panel-raised));
+  border: 2px solid var(--range-fill, rgb(var(--brand)));
 }
 
 input[type='range'].csim-range:disabled {
@@ -108,13 +187,13 @@ input[type='range'].csim-range:disabled {
   height: 9px;
 }
 .csim-scroll::-webkit-scrollbar-thumb {
-  background: #1f2a38;
+  background: rgb(var(--edge));
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 .csim-scroll::-webkit-scrollbar-thumb:hover {
-  background: #2b3a4d;
+  background: rgb(var(--edge-bright));
   background-clip: padding-box;
 }
 .csim-scroll::-webkit-scrollbar-track {

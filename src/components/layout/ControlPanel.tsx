@@ -63,8 +63,8 @@ export function ControlPanel() {
               className={cn(
                 'rounded-lg border px-2 py-2 text-xs font-medium transition-colors',
                 activePresetId === b.id
-                  ? 'border-transparent text-slate-950'
-                  : 'border-edge bg-panel-raised text-slate-300 hover:border-edge-bright',
+                  ? 'border-transparent text-on-accent'
+                  : 'border-edge bg-panel-raised text-fg-muted hover:border-edge-bright',
               )}
               style={activePresetId === b.id ? { backgroundColor: b.tone } : undefined}
             >
@@ -72,7 +72,7 @@ export function ControlPanel() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[11px] leading-snug text-slate-500">
+        <p className="mt-2 text-[11px] leading-snug text-fg-faint">
           12.47 kV distribution feeder · horizontal crossarm construction
         </p>
       </Card>

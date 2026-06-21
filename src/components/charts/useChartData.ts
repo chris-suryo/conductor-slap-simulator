@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useThemeColors } from '@/theme/useThemeColors'
 
 export interface ChartPoint {
   tS: number
@@ -48,12 +49,33 @@ export function useThrottledCursor(hz = 14): number {
   return ms
 }
 
-export const AXIS_TICK = { fontSize: 10, fill: '#64748b' } as const
-export const GRID_STROKE = '#16202c'
-export const TOOLTIP_STYLE = {
-  backgroundColor: '#0e141d',
-  border: '1px solid #1d2734',
-  borderRadius: 8,
-  fontSize: 11,
-  color: '#e2e8f0',
-} as const
+export interface ChartTheme {
+  axisTick: { fontSize: number; fill: string }
+  gridStroke: string
+  axisLine: string
+  tooltip: CSSProperties
+  /** Cursor / playhead line color (light line on dark, dark line on light). */
+  playhead: string
+  /** Surface color for marker strokes (e.g. the TCC operating dot ring). */
+  surface: string
+}
+
+/** Theme-aware Recharts styling derived from the active palette. */
+export function useChartTheme(): ChartTheme {
+  const c = useThemeColors()
+  return {
+    axisTick: { fontSize: 10, fill: c.text3 },
+    gridStroke: c.gridLine,
+    axisLine: c.edge,
+    tooltip: {
+      backgroundColor: c.tooltipBg,
+      border: `1px solid ${c.edge}`,
+      borderRadius: 8,
+      fontSize: 11,
+      color: c.text1,
+      boxShadow: '0 10px 30px -16px rgba(2, 8, 18, 0.55)',
+    },
+    playhead: c.playhead,
+    surface: c.panel,
+  }
+}

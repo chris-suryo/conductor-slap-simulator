@@ -26,6 +26,27 @@ describe('motionSolver — mechanical parameters', () => {
     const large = computeMechParams({ ...DEFAULT_SCENARIO, sagFt: 8 }, conductor)
     expect(large.swingPeriodS).toBeGreaterThan(small.swingPeriodS)
   })
+
+  // --- Corrected (sag-physical) swing-period model ---
+  // A conductor's transverse swing is a pendulum whose period depends on SAG: T ≈ sqrt(sag_ft)
+  // (f1 = 0.55/sqrt(sag_m)). Span enters only through the constant-tension sag ∝ span^2 relation.
+  it('reference period matches the pendulum relation T ≈ sqrt(sag_ft)', () => {
+    // DEFAULT_SCENARIO is at the reference span, so effective sag == input sag (5 ft).
+    const mp = computeMechParams(DEFAULT_SCENARIO, conductor)
+    expect(mp.swingPeriodS).toBeCloseTo(Math.sqrt(DEFAULT_SCENARIO.sagFt), 1) // ≈ 2.24 s
+  })
+
+  it('scales the period with sqrt(sag) at a fixed span (4x sag → 2x period)', () => {
+    const base = computeMechParams({ ...DEFAULT_SCENARIO, sagFt: 2 }, conductor)
+    const quad = computeMechParams({ ...DEFAULT_SCENARIO, sagFt: 8 }, conductor)
+    expect(quad.swingPeriodS / base.swingPeriodS).toBeCloseTo(2, 1)
+  })
+
+  it('longer spans swing slower via the constant-tension sag ∝ span^2 relation', () => {
+    const shortSpan = computeMechParams({ ...DEFAULT_SCENARIO, spanLengthFt: 150 }, conductor)
+    const longSpan = computeMechParams({ ...DEFAULT_SCENARIO, spanLengthFt: 350 }, conductor)
+    expect(longSpan.swingPeriodS).toBeGreaterThan(shortSpan.swingPeriodS)
+  })
 })
 
 describe('motionSolver — integration', () => {

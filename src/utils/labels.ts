@@ -6,17 +6,23 @@ import type {
   TimelineEventKind,
 } from '@/simulation/types'
 import type { BadgeTone } from '@/components/ui/Badge'
+import { STATUS } from '@/theme/tokens'
+import { BRAND } from '@/theme/brand'
 
+/**
+ * Status colors for the UI + 3D scene. Status hues are theme-constant (they encode physics /
+ * protection meaning), sourced from the single token map; brand accents come from brand.ts.
+ */
 export const COLORS = {
-  energized: '#22d3ee',
-  healthy: '#34d399',
-  caution: '#fbbf24',
-  fault: '#f87171',
-  deenergized: '#64748b',
-  arc: '#ff6a4d',
-  slate: '#94a3b8',
-  brand: '#fd8505', // APC orange
-  navy: '#0c3552', // APC navy
+  energized: STATUS.energized,
+  healthy: STATUS.healthy,
+  caution: STATUS.caution,
+  fault: STATUS.fault,
+  deenergized: STATUS.deenergized,
+  arc: STATUS.arc,
+  slate: STATUS.slate,
+  brand: BRAND.colors.accent, // APC orange
+  navy: BRAND.colors.navy, // APC navy
 } as const
 
 export const STATE_META: Record<ProtectionState, { label: string; tone: BadgeTone; color: string }> = {

@@ -49,22 +49,34 @@ export const NO_PROTECTION_CLEAR_MS = 1500
 /**
  * Scales the lumped midspan driving force. Folds in mode shape and the fraction of the
  * distributed magnetic force seen by the center-of-span lumped mass. Calibrated so the
- * default 7.5 kA AB scenario reaches slap territory under slow clearing.
+ * default 7.5 kA AB scenario reaches slap territory under slow clearing while the fast-
+ * protected case stays well clear. NOTE: this is a pure calibration knob, not the textbook
+ * modal projection (~2/π ≈ 0.64) — with the sag-physical swing period the displacement
+ * scales ~T², so a modal-magnitude gain would over-swing wildly. Re-tune (see
+ * src/tests/runSimulation.test.ts) if you change the period model.
  */
-export const EDU_FORCE_GAIN = 0.4
+export const EDU_FORCE_GAIN = 0.15
 /** Fraction of total span mass attributed to the lumped midspan oscillator. */
 export const MASS_FRACTION = 0.5
 /** Light viscous damping ratio so post-clear swing persists for a few seconds. */
 export const DAMPING_RATIO = 0.045
-/** Reference swing (pendulum) period at the reference sag (s). */
-export const SWING_PERIOD_REF_S = 1.0
+/**
+ * Reference transverse-swing period at the reference sag (s). A conductor's lateral swing
+ * behaves as a physical pendulum whose period depends on SAG ALONE: f1 = 0.55/sqrt(sag_m),
+ * i.e. T ≈ sqrt(sag_ft). At SAG_REF_FT = 5 ft that is ≈ sqrt(5) ≈ 2.24 s.
+ */
+export const SWING_PERIOD_REF_S = 2.24
 /** Reference sag the swing period is normalized to (ft). Period ~ sqrt(sag). */
 export const SAG_REF_FT = 5
-/** Reference span the swing period is normalized to (ft). Longer spans swing more. */
+/**
+ * Anchor span (ft) at which the scenario `sagFt` is taken. Sag grows with span at fixed
+ * stringing tension (parabola D = w*L^2 / 8H, so sag ∝ span^2), which is how longer spans
+ * end up swinging more — see motionSolver.computeMechParams.
+ */
 export const SPAN_REF_FT = 250
 /** Clamp on the swing period to keep the model well-behaved (s). */
-export const SWING_PERIOD_MIN_S = 0.55
-export const SWING_PERIOD_MAX_S = 1.8
+export const SWING_PERIOD_MIN_S = 0.8
+export const SWING_PERIOD_MAX_S = 4.5
 
 /**
  * Extra clearance margin (ft) added to the conductor diameter when deciding a "slap".

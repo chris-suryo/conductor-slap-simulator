@@ -16,7 +16,7 @@ import { cn } from '@/utils/cn'
 function Stat({
   label,
   value,
-  tone = 'text-slate-100',
+  tone = 'text-fg',
 }: {
   label: string
   value: ReactNode
@@ -51,14 +51,14 @@ function LiveStatus() {
                 frame.energized ? 'bg-energized shadow-glow shadow-energized' : 'bg-deenergized',
               )}
             />
-            <span className={frame.energized ? 'text-energized' : 'text-slate-400'}>
+            <span className={frame.energized ? 'text-energized' : 'text-fg-muted'}>
               {frame.energized ? 'Energized' : 'Open'}
             </span>
           </div>
         </div>
         <div className="panel-muted px-3 py-2">
           <div className="label-eyebrow mb-1">Current</div>
-          <div className="stat-value text-sm font-semibold text-slate-100">
+          <div className="stat-value text-sm font-semibold text-fg">
             {frame.faultActive ? fmtAmps(frame.currentA) : '—'}
           </div>
         </div>
@@ -84,7 +84,7 @@ export function ResultsPanel() {
 
       <Card>
         <CardHeader eyebrow="Result" title="Outcome" right={<Badge tone={final.tone}>{final.label}</Badge>} />
-        <p className="mb-3 text-xs leading-relaxed text-slate-400">{final.blurb}</p>
+        <p className="mb-3 text-xs leading-relaxed text-fg-muted">{final.blurb}</p>
         <div className="grid grid-cols-2 gap-2">
           <Stat
             label="Relay trip"
@@ -95,7 +95,7 @@ export function ResultsPanel() {
           <Stat
             label="Min clearance"
             value={fmtFt(Math.max(result.minClearanceFt, 0))}
-            tone={result.slapOccurred ? 'text-fault' : 'text-slate-100'}
+            tone={result.slapOccurred ? 'text-fault' : 'text-fg'}
           />
           <Stat
             label="Slap"
@@ -111,7 +111,7 @@ export function ResultsPanel() {
 
       <Card>
         <CardHeader eyebrow="Teaching note" title="What to watch" />
-        <ul className="space-y-2 text-xs leading-relaxed text-slate-400">
+        <ul className="space-y-2 text-xs leading-relaxed text-fg-muted">
           <li className="flex gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-fault" />
             Fault current drives the conductors apart — force grows with current².

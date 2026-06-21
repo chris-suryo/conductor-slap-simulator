@@ -129,8 +129,8 @@ export function TimelinePanel() {
         {/* playhead */}
         <div
           ref={playheadRef}
-          className="pointer-events-none absolute top-0 z-10 h-full w-0.5 -translate-x-1/2 bg-white/90"
-          style={{ left: '0%', boxShadow: '0 0 8px rgba(255,255,255,0.5)' }}
+          className="pointer-events-none absolute top-0 z-10 h-full w-0.5 -translate-x-1/2 bg-[rgb(var(--playhead))]"
+          style={{ left: '0%', boxShadow: '0 0 8px rgb(var(--playhead) / 0.5)' }}
         />
       </div>
 
@@ -140,11 +140,11 @@ export function TimelinePanel() {
           <button
             key={i}
             onClick={() => seek(ev.tMs)}
-            className="group flex items-center gap-1.5 text-[11px] text-slate-400 transition-colors hover:text-slate-100"
+            className="group flex items-center gap-1.5 text-[11px] text-fg-muted transition-colors hover:text-fg"
             title={ev.detail}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: EVENT_COLOR[ev.kind] }} />
-            <span className="stat-value text-slate-500 group-hover:text-slate-300">{fmtMs(ev.tMs)}</span>
+            <span className="stat-value text-fg-faint group-hover:text-fg-muted">{fmtMs(ev.tMs)}</span>
             <span>{SHORT_KIND[ev.kind] ?? ev.kind}</span>
           </button>
         ))}

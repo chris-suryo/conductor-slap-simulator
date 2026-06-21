@@ -46,11 +46,19 @@ export function computeMechParams(scenario: Scenario, conductor: ConductorType):
   const massPerM = lbPerKftToKgPerM(conductor.weightLbPerKft)
   const massEffKg = Math.max(massPerM * spanM * MASS_FRACTION, 0.5)
 
-  // Pendulum-like: period grows with sag and span length, so longer spans swing more
-  // (and slap more readily) — a key reason long spans are at higher risk.
+  // Span influences the swing through SAG, not through the period directly. At a fixed
+  // stringing tension the sag follows the parabola D = w*L^2 / (8H), so sag ∝ span^2; the
+  // scenario `sagFt` is taken at the reference/anchor span (SPAN_REF_FT) and longer spans
+  // are strung with more sag. (In the lumped model span otherwise cancels out of F/m, so
+  // routing it through sag is the physically honest way long spans end up swinging more.)
+  const effectiveSagFt = Math.max(scenario.sagFt, 0.5) * (scenario.spanLengthFt / SPAN_REF_FT) ** 2
+
+  // A conductor's transverse swing behaves as a physical pendulum whose period depends on
+  // SAG ALONE: the fundamental frequency f1 = 0.55 / sqrt(sag_m), i.e. T ≈ sqrt(sag_ft)
+  // seconds, independent of span length, tension, and mass. SWING_PERIOD_REF_S is that
+  // period at the reference sag (≈ sqrt(SAG_REF_FT)).
   const swingPeriodS = clamp(
-    SWING_PERIOD_REF_S *
-      Math.sqrt((Math.max(scenario.sagFt, 0.5) / SAG_REF_FT) * (scenario.spanLengthFt / SPAN_REF_FT)),
+    SWING_PERIOD_REF_S * Math.sqrt(effectiveSagFt / SAG_REF_FT),
     SWING_PERIOD_MIN_S,
     SWING_PERIOD_MAX_S,
   )

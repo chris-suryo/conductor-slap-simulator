@@ -23,11 +23,11 @@ export function Toggle({
         disabled && 'pointer-events-none opacity-50',
       )}
     >
-      {label && <span className="font-medium text-slate-200">{label}</span>}
+      {label && <span className="font-medium text-fg">{label}</span>}
       <span
         className={cn(
           'relative h-5 w-9 shrink-0 rounded-full transition-colors',
-          checked ? 'bg-energized/70' : 'bg-slate-600/60',
+          checked ? 'bg-energized/70' : 'bg-edge-bright/60',
         )}
       >
         <span
