@@ -7,9 +7,9 @@ export function Effects() {
   return (
     <EffectComposer>
       <Bloom
-        intensity={isDark ? 0.85 : 0.5}
-        luminanceThreshold={isDark ? 0.25 : 0.55}
-        luminanceSmoothing={0.9}
+        intensity={isDark ? 0.7 : 0.45}
+        luminanceThreshold={isDark ? 0.45 : 0.6}
+        luminanceSmoothing={0.85}
         mipmapBlur
       />
     </EffectComposer>

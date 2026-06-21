@@ -22,7 +22,7 @@ const DistributionScene = lazy(() =>
 
 function Header() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/60 px-4 backdrop-blur-md">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/95 px-4 shadow-panel backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <ApcLogo />
         <div className="h-8 w-px bg-edge" />
@@ -40,23 +40,6 @@ function Header() {
         <ThemeToggle />
       </div>
     </header>
-  )
-}
-
-function PresentationCard() {
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-3 pt-8">
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-edge/70 bg-panel/70 px-8 py-5 shadow-panel backdrop-blur-md">
-        <ApcLogo size="lg" />
-        <div className="text-center">
-          <div className="label-eyebrow mb-1 text-brand">12.47 kV distribution demo</div>
-          <div className="text-xl font-semibold tracking-tight text-fg">Conductor Slap Simulator</div>
-          <div className="mt-1 text-xs text-fg-muted">
-            Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -98,7 +81,6 @@ export function Shell() {
             >
               <DistributionScene />
             </Suspense>
-            {presentation && <PresentationCard />}
           </div>
           {/* Timeline stays visible in presentation mode; only the expand toggle hides it. */}
           {!sceneExpanded && <TimelinePanel />}

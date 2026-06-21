@@ -114,12 +114,25 @@ certified engineering tool. Keep that framing; don't present the physics as exac
 - **The 3D scene rebuilds tube geometry per frame** when a conductor moves; sample displacement
   via the passed `frames` array + `dtMs`, not a stale closure. (A past bug compared against
   `NaN` and froze the lines — make sure motion actually updates on screen.)
-- **Street/environment is static.** `scene/Ground.tsx`, `DistantPoles.tsx`, `Skyline.tsx` build
-  their geometry once in `useMemo` (instanced — one draw call each) and do **no** per-frame work;
-  `<Sky>` + `<ContactShadows>` (drei) provide the backdrop/shadows. Their colors come from new
-  **scene-only** tokens in `tokens.ts` (`scene-road`/`-grass`/`-skyline`/`-sun`/`-road-line`),
-  resolved through `buildPalette()`/`useThemeColors()` — these are *not* mirrored in `index.css`
-  (like the other `scene-*` tokens, only `--scene-bg` is, because Tailwind consumes it).
+- **Street/environment is a "cinematic dusk city," mostly static.** `scene/Ground.tsx`,
+  `DistantPoles.tsx` (poles + crossarms + insulators + transformer + dusk street lamps),
+  `Skyline.tsx` (lit-window buildings in depth bands) build geometry once in `useMemo`
+  (instanced — ~1 draw call each); `<Sky>` + `<ContactShadows>` (drei) give the backdrop/shadows.
+  Procedural `CanvasTexture`s are generated once via `scene/facadeTexture.ts` (building windows)
+  and `scene/groundTexture.ts` (grass/asphalt noise), both seeded by `scene/prng.ts`. Colors come
+  from **scene-only** tokens in `tokens.ts` (`scene-road`/`-grass`/`-skyline`/`-window`/`-lamp`/
+  `-car-*`/…), resolved through `buildPalette()`/`useThemeColors()` — *not* mirrored in `index.css`
+  (only `--scene-bg` is, because Tailwind consumes it).
+- **Only three things move in the scene besides the physics:** `scene/Cars.tsx` (instanced
+  traffic, 1 `useFrame`), the Skyline window **twinkle** (1 `useFrame`, dusk only), and the
+  per-conductor **idle "breeze" sway** in `Conductor.tsx`. The sway is **render-only** —
+  it's added to the local `disp`, gated to `!faultActive && contact==='safe'`, and **never**
+  written back into the shared `frames`/`witnessFrames` arrays (the charts read those).
+- **Decorative emissive (windows/car lights/lamps)** reads theme-CONSTANT colors from
+  `SCENE_EMISSIVE` in `utils/labels.ts` (so the hot path never calls the theme hook); day-vs-dusk
+  is gated on `isDark` *intensity*. Every emissive material sets `toneMapped:false` so Bloom
+  catches it. The conductor is a dim metallic body + a separate bright **core tube**
+  (`MeshBasicMaterial`) that carries the glow — keep both in sync when editing.
 - **Path alias:** import from `@/...` (configured in `vite.config.ts` and `tsconfig.json`).
 
 ## Running, testing, verifying

@@ -59,6 +59,16 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-grass': '20 33 27',
     'scene-skyline': '16 26 44',
     'scene-sun': '255 150 92',
+    // Cinematic dusk additions (lit city). Scene-only — same flow as above.
+    'scene-window': '255 197 120',
+    'scene-window-dim': '120 92 56',
+    'scene-car-head': '255 244 214',
+    'scene-car-tail': '255 64 48',
+    'scene-car-body': '40 46 60',
+    'scene-lamp': '255 188 110',
+    'scene-curb': '46 50 58',
+    'scene-skyline-far': '12 19 34',
+    'scene-transformer': '60 52 42',
   },
   light: {
     base: '237 242 248',
@@ -86,6 +96,16 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-grass': '150 174 130',
     'scene-skyline': '178 194 212',
     'scene-sun': '255 244 214',
+    // Cinematic additions (muted in daylight — windows/lamps mostly read "off").
+    'scene-window': '120 132 150',
+    'scene-window-dim': '150 160 174',
+    'scene-car-head': '245 245 235',
+    'scene-car-tail': '220 70 60',
+    'scene-car-body': '150 156 168',
+    'scene-lamp': '255 240 205',
+    'scene-curb': '170 174 182',
+    'scene-skyline-far': '196 208 222',
+    'scene-transformer': '120 110 96',
   },
 }
 
@@ -119,6 +139,15 @@ export interface ThemePalette {
   sceneGrass: string
   sceneSkyline: string
   sceneSun: string
+  sceneWindow: string
+  sceneWindowDim: string
+  sceneCarHead: string
+  sceneCarTail: string
+  sceneCarBody: string
+  sceneLamp: string
+  sceneCurb: string
+  sceneSkylineFar: string
+  sceneTransformer: string
   // status (constant across themes)
   energized: string
   healthy: string
@@ -157,6 +186,15 @@ export function buildPalette(name: ThemeName): ThemePalette {
     sceneGrass: triple(n['scene-grass']),
     sceneSkyline: triple(n['scene-skyline']),
     sceneSun: triple(n['scene-sun']),
+    sceneWindow: triple(n['scene-window']),
+    sceneWindowDim: triple(n['scene-window-dim']),
+    sceneCarHead: triple(n['scene-car-head']),
+    sceneCarTail: triple(n['scene-car-tail']),
+    sceneCarBody: triple(n['scene-car-body']),
+    sceneLamp: triple(n['scene-lamp']),
+    sceneCurb: triple(n['scene-curb']),
+    sceneSkylineFar: triple(n['scene-skyline-far']),
+    sceneTransformer: triple(n['scene-transformer']),
     energized: STATUS.energized,
     healthy: STATUS.healthy,
     caution: STATUS.caution,

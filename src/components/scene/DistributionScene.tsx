@@ -18,6 +18,7 @@ import { Span } from './Span'
 import { Ground } from './Ground'
 import { DistantPoles } from './DistantPoles'
 import { Skyline } from './Skyline'
+import { Cars } from './Cars'
 import { CameraRig } from './CameraRig'
 import { Effects } from './Effects'
 
@@ -124,27 +125,30 @@ export function DistributionScene() {
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-edge bg-scene">
       <Canvas dpr={[1, 1.8]} camera={{ position: [-34, 15, 40], fov: 44, near: 0.1, far: 400 }}>
         <color attach="background" args={[palette.sceneBg]} />
-        <fog attach="fog" args={[palette.sceneBg, 90, 200]} />
+        {/* Lighter fog so the lit skyline reads; still enough haze for depth. */}
+        <fog attach="fog" args={[palette.sceneBg, 150, 340]} />
 
-        {/* Physically-based sky dome: bright day in light, low-sun dusk in dark. */}
+        {/* Physically-based sky dome: bright day in light, warm low-sun dusk in dark. */}
         <Sky
           distance={4500}
-          sunPosition={isDark ? [80, 7, -40] : [16, 26, 14]}
-          turbidity={isDark ? 10 : 5}
-          rayleigh={isDark ? 2.6 : 1.2}
-          mieCoefficient={0.006}
-          mieDirectionalG={isDark ? 0.92 : 0.8}
+          sunPosition={isDark ? [60, 4, -55] : [16, 26, 14]}
+          turbidity={isDark ? 12 : 5}
+          rayleigh={isDark ? 3.2 : 1.2}
+          mieCoefficient={isDark ? 0.02 : 0.006}
+          mieDirectionalG={isDark ? 0.93 : 0.8}
         />
 
-        <ambientLight intensity={isDark ? 0.28 : 0.72} />
-        <hemisphereLight args={['#bcd5ff', isDark ? '#0a0f17' : '#dfe7f2', isDark ? 0.55 : 0.7]} />
-        <directionalLight position={[16, 26, 14]} intensity={isDark ? 1.1 : 1.0} color={isDark ? '#d6e6ff' : '#ffffff'} />
-        <directionalLight position={[-20, 8, -12]} intensity={isDark ? 0.4 : 0.3} color={isDark ? '#3b6fb0' : '#9db8db'} />
+        <ambientLight intensity={isDark ? 0.22 : 0.72} />
+        <hemisphereLight args={['#9bb4e8', isDark ? '#0a0f17' : '#dfe7f2', isDark ? 0.45 : 0.7]} />
+        {/* Warm dusk key from the sun side; cool fill from the opposite side. */}
+        <directionalLight position={[40, 12, -30]} intensity={isDark ? 1.25 : 1.0} color={isDark ? '#ffb784' : '#ffffff'} />
+        <directionalLight position={[-20, 8, -12]} intensity={isDark ? 0.35 : 0.3} color={isDark ? '#2f5f9e' : '#9db8db'} />
 
-        {/* Street + receding feeder + faded skyline (all static, fog-faded). */}
+        {/* Street + receding feeder + faded skyline + traffic (all static or instanced). */}
         <Ground centerZ={g.centerZ} />
-        <DistantPoles leftSpanU={g.leftSpanU} rightSpanU={g.rightSpanU} />
-        <Skyline centerZ={g.centerZ} />
+        <DistantPoles leftSpanU={g.leftSpanU} rightSpanU={g.rightSpanU} spacing={g.restX.C} isDark={isDark} />
+        <Skyline centerZ={g.centerZ} isDark={isDark} />
+        <Cars centerZ={g.centerZ} isDark={isDark} />
         <ContactShadows
           position={[0, -POLE_HEIGHT + 0.05, g.centerZ]}
           scale={150}
