@@ -155,6 +155,13 @@ two-span scene, charts, presentation mode, and APC branding.
   (`src/simulation/constants.ts`) calibrated so the default scenario tells the story. It is
   not catenary-accurate. Lateral motion in the 3D view is exaggerated ~1.5× for clarity (noted
   on screen).
+- The transverse-swing **period follows the pendulum relation `T ≈ √(sag_ft)`** (depends on
+  sag, not span/tension/mass); span influences the swing through the constant-tension
+  `sag ∝ span²` relation. See `docs/PHYSICS_VERIFICATION.md` for the full audit.
+- Fault current is modeled as a **steady RMS-equivalent** force. The real force pulsates at
+  120 Hz with an asymmetric first-cycle peak (~2–2.8× the symmetric value); since the swing
+  period (~2 s) ≫ the electrical period, the conductor responds to the time-average, so the
+  steady force is the correct *average* — but the initial peak "kick" is not shown.
 - Engineering basis is cited in comments throughout `src/simulation/` (EPRI conductor
   slapping; the *Electric Power Distribution Handbook*; T. A. Ward, IEEE; Eaton / NOJA
   recloser behavior; IEC 60255 inverse curves).

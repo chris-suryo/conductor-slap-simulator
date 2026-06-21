@@ -81,10 +81,12 @@ export const PRESETS: ScenarioPreset[] = [
         // Disable instantaneous so the first shot rides the slower inverse curve.
         phaseInstantaneousPickupA: 12000,
         timeMultiplier: 0.3,
+        // Dead time set near a half swing period (~1.1 s) so the reclose lands while the
+        // rebounding conductors are still close — re-striking the fault toward lockout.
         recloseShots: [
-          { operation: 1, curveMode: 'inverse', recloseDelayMs: 500 },
-          { operation: 2, curveMode: 'inverse', recloseDelayMs: 500 },
-          { operation: 3, curveMode: 'inverse', recloseDelayMs: 500 },
+          { operation: 1, curveMode: 'inverse', recloseDelayMs: 1150 },
+          { operation: 2, curveMode: 'inverse', recloseDelayMs: 1150 },
+          { operation: 3, curveMode: 'inverse', recloseDelayMs: 1150 },
         ],
       },
     }),

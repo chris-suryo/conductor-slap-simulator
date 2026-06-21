@@ -42,8 +42,12 @@ certified engineering tool. Keep that framing; don't present the physics as exac
   current flows in both conductors, so force ∝ I². Currents are antiparallel → **repulsion**
   (conductors pushed apart while energized).
 - **`motionSolver.ts`** — a lumped spring-mass-damper per phase, integrated with semi-implicit
-  Euler. Swing period grows with **sag and span length** (longer spans swing more → slap more
-  readily). Slap happens on the **rebound** after the fault clears, not during it.
+  Euler. The transverse swing is a **pendulum whose period depends on sag**: `T ≈ √(sag_ft)`
+  (fundamental `f₁ = 0.55/√(sag_m)`), **independent of span/tension/mass**. Span enters only
+  through the **constant-tension parabola `sag ∝ span²`** (`D = wL²/8H`): longer spans are
+  strung with more sag → swing slower → larger amplitude → slap more readily. (In the lumped
+  model span otherwise cancels out of `F/m`, so routing it through sag is the honest channel.)
+  Slap happens on the **rebound** after the fault clears, not during it.
 - **`protection.ts`** — IEC inverse curve `t = TMS·(k/(Mᵃ−1)+c)` plus an instantaneous element;
   total clearing time adds the breaker operating time.
 - **`recloserSequence.ts`** — the `ProtectionController` FSM: NORMAL → FAULT_ACTIVE →
