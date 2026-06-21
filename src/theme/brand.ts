@@ -47,7 +47,7 @@ export const BRAND: Brand = {
   name: 'APC Relay Engineering',
   wordmark: 'APC',
   sub: ['RELAY', 'ENGINEERING'],
-  presenter: 'Arianna Surya',
+  presenter: 'Harianto Suryo, P.E.',
   site: 'apcrelay.com',
   colors: {
     accent: '#fd8505', // TODO(APC): confirm exact orange
@@ -58,10 +58,11 @@ export const BRAND: Brand = {
     navyDark: '#0a2740',
     onAccent: '#06121e',
   },
-  // TODO(APC): set src/srcLight to dropped files in public/brand/ and set aspect (w/h).
-  logo: { src: null, srcLight: null, aspect: 1 },
-  // TODO(APC): set if brand mandates specific typefaces.
-  fonts: { sans: null, mono: null },
+  // Recreated APC lockup (placeholder until the official vector arrives — then just
+  // replace the files in public/brand/ and keep these paths). aspect = viewBox w/h.
+  logo: { src: '/brand/apc-logo.svg', srcLight: '/brand/apc-logo-light.svg', aspect: 340 / 104 },
+  // Matches the APC website's IBM Plex / Carbon-style typography.
+  fonts: { sans: "'IBM Plex Sans', system-ui, sans-serif", mono: "'IBM Plex Mono', ui-monospace, monospace" },
 }
 
 /** "#fd8505" -> "253 133 5" (RGB triple for CSS custom properties / Tailwind alpha mods). */

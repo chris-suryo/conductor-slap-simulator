@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useLayoutStore } from '@/state/useLayoutStore'
 import { BRAND } from '@/theme/brand'
 import { ControlPanel } from './ControlPanel'
 import { ResultsPanel } from './ResultsPanel'
@@ -8,6 +9,7 @@ import { ModeTabs } from './ModeTabs'
 import { PlaybackControls } from './PlaybackControls'
 import { ApcLogo } from './ApcLogo'
 import { ThemeToggle } from './ThemeToggle'
+import { ResizeHandle } from './ResizeHandle'
 import { Spinner } from '@/components/ui/Spinner'
 import { ForceChart } from '@/components/charts/ForceChart'
 import { DisplacementChart } from '@/components/charts/DisplacementChart'
@@ -60,15 +62,29 @@ function PresentationCard() {
 
 export function Shell() {
   const presentation = useScenarioStore((s) => s.mode === 'presentation')
+  const sceneExpanded = useLayoutStore((s) => s.sceneExpanded)
+  const leftWidth = useLayoutStore((s) => s.leftWidth)
+  const rightWidth = useLayoutStore((s) => s.rightWidth)
+
+  // Both presentation mode and the "expand scene" toggle collapse the surrounding
+  // chrome (asides + charts + timeline) so the 3D scene takes the whole stage.
+  const chromeHidden = presentation || sceneExpanded
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <Header />
       <div className="flex flex-1 gap-3 overflow-hidden p-3">
-        {!presentation && (
-          <aside className="w-[346px] shrink-0">
-            <ControlPanel />
-          </aside>
+        {!chromeHidden && (
+          <>
+            <aside className="shrink-0" style={{ width: leftWidth }}>
+              <ControlPanel />
+            </aside>
+            <ResizeHandle
+              ariaLabel="Resize controls panel"
+              // Read live width from the store (avoids stale-closure lag during fast drags).
+              onDrag={(d) => useLayoutStore.getState().setLeftWidth(useLayoutStore.getState().leftWidth + d)}
+            />
+          </>
         )}
 
         <main className="flex min-w-0 flex-1 flex-col gap-3">
@@ -84,8 +100,9 @@ export function Shell() {
             </Suspense>
             {presentation && <PresentationCard />}
           </div>
-          <TimelinePanel />
-          {!presentation && (
+          {/* Timeline stays visible in presentation mode; only the expand toggle hides it. */}
+          {!sceneExpanded && <TimelinePanel />}
+          {!chromeHidden && (
             <div className="grid grid-cols-3 gap-3">
               <ForceChart />
               <DisplacementChart />
@@ -94,10 +111,16 @@ export function Shell() {
           )}
         </main>
 
-        {!presentation && (
-          <aside className="w-[324px] shrink-0">
-            <ResultsPanel />
-          </aside>
+        {!chromeHidden && (
+          <>
+            <ResizeHandle
+              ariaLabel="Resize results panel"
+              onDrag={(d) => useLayoutStore.getState().setRightWidth(useLayoutStore.getState().rightWidth - d)}
+            />
+            <aside className="shrink-0" style={{ width: rightWidth }}>
+              <ResultsPanel />
+            </aside>
+          </>
         )}
       </div>
     </div>

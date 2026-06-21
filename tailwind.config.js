@@ -54,18 +54,16 @@ export default {
       },
       fontFamily: {
         sans: [
-          'Inter Variable',
-          'Inter',
+          'IBM Plex Sans Variable',
+          'IBM Plex Sans',
           '-apple-system',
-          'SF Pro Text',
           'system-ui',
           'Segoe UI',
           'Roboto',
           'sans-serif',
         ],
         mono: [
-          'JetBrains Mono Variable',
-          'JetBrains Mono',
+          'IBM Plex Mono',
           'ui-monospace',
           'SF Mono',
           'SFMono-Regular',

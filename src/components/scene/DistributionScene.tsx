@@ -1,10 +1,13 @@
 import { Canvas, useFrame } from '@react-three/fiber'
+import { Sky, ContactShadows } from '@react-three/drei'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import type { Phase } from '@/simulation/types'
 import { faultGeometry } from '@/simulation/runSimulation'
 import { getConductor } from '@/simulation/conductorCatalog'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useLayoutStore } from '@/state/useLayoutStore'
 import { useThemeStore } from '@/state/useThemeStore'
 import { useThemeColors } from '@/theme/useThemeColors'
 import { frameAtMs } from '@/utils/frames'
@@ -12,6 +15,9 @@ import { clamp } from '@/utils/math'
 import { Pole } from './Pole'
 import { Crossarm } from './Crossarm'
 import { Span } from './Span'
+import { Ground } from './Ground'
+import { DistantPoles } from './DistantPoles'
+import { Skyline } from './Skyline'
 import { CameraRig } from './CameraRig'
 import { Effects } from './Effects'
 
@@ -83,6 +89,8 @@ export function DistributionScene() {
   const mode = useScenarioStore((s) => s.mode)
   const palette = useThemeColors()
   const isDark = useThemeStore((s) => s.resolved === 'dark')
+  const sceneExpanded = useLayoutStore((s) => s.sceneExpanded)
+  const toggleSceneExpanded = useLayoutStore((s) => s.toggleSceneExpanded)
 
   const g = useMemo<Geometry>(() => {
     const spacingU = scenario.phaseSpacingFt
@@ -116,16 +124,35 @@ export function DistributionScene() {
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-edge bg-scene">
       <Canvas dpr={[1, 1.8]} camera={{ position: [-34, 15, 40], fov: 44, near: 0.1, far: 400 }}>
         <color attach="background" args={[palette.sceneBg]} />
-        <fog attach="fog" args={[palette.sceneBg, 70, 165]} />
+        <fog attach="fog" args={[palette.sceneBg, 90, 200]} />
+
+        {/* Physically-based sky dome: bright day in light, low-sun dusk in dark. */}
+        <Sky
+          distance={4500}
+          sunPosition={isDark ? [80, 7, -40] : [16, 26, 14]}
+          turbidity={isDark ? 10 : 5}
+          rayleigh={isDark ? 2.6 : 1.2}
+          mieCoefficient={0.006}
+          mieDirectionalG={isDark ? 0.92 : 0.8}
+        />
 
         <ambientLight intensity={isDark ? 0.28 : 0.72} />
         <hemisphereLight args={['#bcd5ff', isDark ? '#0a0f17' : '#dfe7f2', isDark ? 0.55 : 0.7]} />
         <directionalLight position={[16, 26, 14]} intensity={isDark ? 1.1 : 1.0} color={isDark ? '#d6e6ff' : '#ffffff'} />
         <directionalLight position={[-20, 8, -12]} intensity={isDark ? 0.4 : 0.3} color={isDark ? '#3b6fb0' : '#9db8db'} />
 
-        <gridHelper
-          args={[180, 60, palette.sceneGridMajor, palette.sceneGridMinor]}
-          position={[0, -POLE_HEIGHT, g.centerZ]}
+        {/* Street + receding feeder + faded skyline (all static, fog-faded). */}
+        <Ground centerZ={g.centerZ} />
+        <DistantPoles leftSpanU={g.leftSpanU} rightSpanU={g.rightSpanU} />
+        <Skyline centerZ={g.centerZ} />
+        <ContactShadows
+          position={[0, -POLE_HEIGHT + 0.05, g.centerZ]}
+          scale={150}
+          blur={2.6}
+          far={34}
+          resolution={512}
+          opacity={isDark ? 0.5 : 0.4}
+          color={isDark ? '#01040a' : '#1e293b'}
         />
 
         <SceneContent g={g} />
@@ -134,6 +161,18 @@ export function DistributionScene() {
       </Canvas>
 
       {/* overlays */}
+      {mode !== 'presentation' && (
+        <button
+          type="button"
+          onClick={toggleSceneExpanded}
+          title={sceneExpanded ? 'Restore panels' : 'Expand scene'}
+          aria-label={sceneExpanded ? 'Restore panels' : 'Expand scene'}
+          aria-pressed={sceneExpanded}
+          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg border border-edge/60 bg-panel/70 text-fg-muted backdrop-blur transition-colors hover:border-brand hover:text-fg"
+        >
+          {sceneExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        </button>
+      )}
       <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-lg border border-edge/60 bg-panel/70 px-3 py-1.5 backdrop-blur">
         <span className="h-1.5 w-1.5 rounded-full bg-energized" />
         <span className="text-xs font-medium text-fg-muted">

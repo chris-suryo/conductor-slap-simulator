@@ -52,6 +52,13 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-pole': '74 61 47',
     'scene-crossarm': '91 102 117',
     'scene-insulator': '170 180 192',
+    // Street/environment (dusk feel in dark). Scene-only — consumed by the 3D scene
+    // via buildPalette(), NOT exposed as Tailwind CSS vars, so not mirrored in index.css.
+    'scene-road': '26 30 38',
+    'scene-road-line': '120 122 110',
+    'scene-grass': '20 33 27',
+    'scene-skyline': '16 26 44',
+    'scene-sun': '255 150 92',
   },
   light: {
     base: '237 242 248',
@@ -73,6 +80,12 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-pole': '125 104 80',
     'scene-crossarm': '130 140 154',
     'scene-insulator': '198 206 216',
+    // Street/environment (day feel in light).
+    'scene-road': '120 124 132',
+    'scene-road-line': '232 234 238',
+    'scene-grass': '150 174 130',
+    'scene-skyline': '178 194 212',
+    'scene-sun': '255 244 214',
   },
 }
 
@@ -101,6 +114,11 @@ export interface ThemePalette {
   scenePole: string
   sceneCrossarm: string
   sceneInsulator: string
+  sceneRoad: string
+  sceneRoadLine: string
+  sceneGrass: string
+  sceneSkyline: string
+  sceneSun: string
   // status (constant across themes)
   energized: string
   healthy: string
@@ -134,6 +152,11 @@ export function buildPalette(name: ThemeName): ThemePalette {
     scenePole: triple(n['scene-pole']),
     sceneCrossarm: triple(n['scene-crossarm']),
     sceneInsulator: triple(n['scene-insulator']),
+    sceneRoad: triple(n['scene-road']),
+    sceneRoadLine: triple(n['scene-road-line']),
+    sceneGrass: triple(n['scene-grass']),
+    sceneSkyline: triple(n['scene-skyline']),
+    sceneSun: triple(n['scene-sun']),
     energized: STATUS.energized,
     healthy: STATUS.healthy,
     caution: STATUS.caution,

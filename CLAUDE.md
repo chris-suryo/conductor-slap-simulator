@@ -84,9 +84,23 @@ certified engineering tool. Keep that framing; don't present the physics as exac
 ## Brand layer (APC) — swap assets in ONE place
 
 - All brand specifics live in `src/theme/brand.ts` (`BRAND`: colors, wordmark, presenter, logo
-  slot, optional fonts) + `public/brand/` for logo files. To drop in official assets, edit only
-  `brand.ts` (`logo.src`/`colors.accent`/`colors.navy`) and the favicon/title in `index.html`.
-  Look for `TODO(APC)` markers. `ApcLogo` renders the image when set, else a typographic wordmark.
+  paths, fonts) + `public/brand/` for logo files. The header/favicon now use a **hand-recreated
+  APC lockup** (`apc-logo.svg` dark, `apc-logo-light.svg` light, `apc-favicon.svg`) — when the
+  official vector arrives, just overwrite those files (keep the `brand.ts` paths). `ApcLogo`
+  renders the image when `logo.src` is set, else a typographic wordmark (kept as a fallback).
+- **Typography:** UI uses **IBM Plex Sans** (variable) + **IBM Plex Mono** (static 400/500/600),
+  loaded via `@fontsource*` in `src/main.tsx` and mapped in `tailwind.config.js` `fontFamily`
+  (this mirrors APC's website). The exact CSS family names are `'IBM Plex Sans Variable'` and
+  `'IBM Plex Mono'` — confirm against the `@fontsource*` package CSS if you swap fonts.
+
+## Layout (resizable)
+
+- `state/useLayoutStore.ts` holds the side-panel widths (`leftWidth`/`rightWidth`, clamped +
+  persisted to `localStorage` key `csim-layout`, dev `window.__layout`) and a `sceneExpanded`
+  toggle. `Shell.tsx` drives the asides' widths from the store, drops a `ResizeHandle` between
+  each aside and the center, and gates all chrome on `chromeHidden = presentation || sceneExpanded`
+  (the center stays `flex-1 min-w-0` so the charts reflow). The **expand-scene** button lives in
+  the 3D scene overlay and just flips `sceneExpanded`.
 
 ## Conventions & gotchas
 
@@ -100,6 +114,12 @@ certified engineering tool. Keep that framing; don't present the physics as exac
 - **The 3D scene rebuilds tube geometry per frame** when a conductor moves; sample displacement
   via the passed `frames` array + `dtMs`, not a stale closure. (A past bug compared against
   `NaN` and froze the lines — make sure motion actually updates on screen.)
+- **Street/environment is static.** `scene/Ground.tsx`, `DistantPoles.tsx`, `Skyline.tsx` build
+  their geometry once in `useMemo` (instanced — one draw call each) and do **no** per-frame work;
+  `<Sky>` + `<ContactShadows>` (drei) provide the backdrop/shadows. Their colors come from new
+  **scene-only** tokens in `tokens.ts` (`scene-road`/`-grass`/`-skyline`/`-sun`/`-road-line`),
+  resolved through `buildPalette()`/`useThemeColors()` — these are *not* mirrored in `index.css`
+  (like the other `scene-*` tokens, only `--scene-bg` is, because Tailwind consumes it).
 - **Path alias:** import from `@/...` (configured in `vite.config.ts` and `tsconfig.json`).
 
 ## Running, testing, verifying
@@ -118,12 +138,14 @@ without clicking, use the dev `window.__store`, e.g.
 
 ## What's done vs. open
 
-- **Done:** AB/BC/AC faults, full relay+recloser sequence, two-span 3D scene, charts,
-  presentation mode, APC branding.
+- **Done:** AB/BC/AC faults, full relay+recloser sequence, two-span 3D scene on a street
+  (road + receding feeder + skyline + ground shadows + sky), resizable panels + expand-scene
+  toggle, charts, presentation mode, dark/light theming, IBM Plex typography, APC branding
+  (recreated logo).
 - **Stubbed (typed, UI-disabled):** AG/BG/CG ground faults, ABC three-phase
   (`faultGeometry()` returns `isPair: false` for these — they need a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video
-  export, bundle code-splitting, official logo asset. See README "Status & roadmap".
+  export. See README "Status & roadmap".
 
 ## A good change checklist
 
