@@ -63,6 +63,17 @@ the terminal to stop.
 | `npm run typecheck` | Check TypeScript types (no compile errors). |
 | `npm run build` | Production build into `dist/`. |
 
+### Deploying (Vercel)
+
+The app is a static Vite SPA, so it deploys to any static host. It's wired for **Vercel**:
+`vercel.json` pins the framework (`vite`), build command (`npm run build`), output (`dist`), and
+an SPA fallback rewrite — so Vercel builds it reproducibly and pushes to the connected branch
+trigger deploys (with automatic preview URLs for PRs). No environment variables are required.
+
+> Note: Vercel's free **Hobby** plan is intended for non-commercial use; this is an internal
+> teaching/demo tool. Hosts whose free tier explicitly permits commercial use (Netlify,
+> Cloudflare Pages) are alternatives if that matters — the same `dist/` build works on any of them.
+
 ---
 
 ## Using the app
