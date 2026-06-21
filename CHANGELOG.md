@@ -4,6 +4,45 @@ All notable changes to the Conductor Slap Simulator are documented here.
 
 ## [Unreleased]
 
+### Frontend redesign — professional theming, light/dark mode, branding
+
+A comprehensive UI reskin toward a premium "engineering product" look (clean-SaaS airiness +
+engineering-console precision), with a full light theme alongside the existing dark one, an
+isolated APC brand layer, and theme-aware graphs and 3D scene.
+
+#### Added
+- **Theme system** (`src/theme/*`): a single source of truth in `tokens.ts` (per-theme NEUTRAL
+  palettes + constant STATUS colors), `applyTheme.ts`, and `useThemeColors.ts`. Colors flow to
+  three consumers from one place — Tailwind utilities (via `rgb(var(--token) / <alpha>)`),
+  Recharts (via `useChartTheme()`), and the 3D scene (via theme-change re-renders). Status hues
+  (energized/fault/arc/…) stay constant across themes; only neutrals swap.
+- **Dark + light mode** with a persisted toggle (`useThemeStore.ts`, `ThemeToggle.tsx`), a
+  pre-paint script in `index.html` to avoid theme flash, and `prefers-color-scheme` support.
+- **Brand layer** (`src/theme/brand.ts` + `public/brand/`): one swappable file for the official
+  APC logo + colors + fonts, with `TODO(APC)` hand-off markers. `ApcLogo` renders the official
+  asset when provided, else a typographic fallback.
+- Self-hosted **Inter** + **JetBrains Mono** variable fonts; **lucide-react** icons replacing
+  hand-rolled SVGs; a branded `Spinner` used as the 3D scene's loading fallback.
+
+#### Changed
+- `tailwind.config.js` + `src/index.css` rebuilt around CSS-variable tokens; all `text-slate-*`
+  usages migrated to semantic `fg` / `fg-muted` / `fg-faint` tokens so text is readable in both
+  themes; slider/scrollbar/playhead colors tokenized.
+- Charts (`ForceChart`, `DisplacementChart`, `TccChart`) reskinned: theme-aware axes/grid/
+  tooltips, units, a clearance danger-band fill, cleaner TCC log-decade ticks and a labeled
+  operating point. The TCC is flagged in-code as the prime future visx/D3/uPlot upgrade.
+- 3D scene (`DistributionScene`, `Pole`, `Crossarm`, `Effects`) themed for background/fog/grid/
+  lighting/materials and bloom, while **preserving** the per-frame imperative `useFrame` hot
+  paths (they read only constant status colors).
+- Header/presentation splash refreshed and brand-sourced; brand-forward `<title>`/favicon.
+
+#### Performance
+- The heavy three.js / react-three-fiber scene is now **code-split** (lazy-loaded ~906 kB chunk),
+  dropping the initial JS bundle from ~1510 kB to ~624 kB.
+
+#### Notes
+- No simulation/model code touched; all 32 model tests stay green. `typecheck` and `build` clean.
+
 ### Physics & math verification audit (swing-period correction)
 
 A comprehensive audit verified the simulator's physics, math, and protection theory against

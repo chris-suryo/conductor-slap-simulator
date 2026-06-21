@@ -26,7 +26,7 @@ export function Slider({
   unit,
   format,
   disabled,
-  fill = '#fd8505',
+  fill = 'rgb(var(--brand))',
   hint,
 }: SliderProps) {
   const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
@@ -36,9 +36,9 @@ export function Slider({
     <div className={cn('space-y-1.5', disabled && 'opacity-50')}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="label-eyebrow">{label}</span>
-        <span className="stat-value text-[13px] text-slate-100">
+        <span className="stat-value text-[13px] text-fg">
           {format ? format(value) : value}
-          {unit ? <span className="ml-0.5 text-slate-500">{unit}</span> : null}
+          {unit ? <span className="ml-0.5 text-fg-faint">{unit}</span> : null}
         </span>
       </div>
       <input
@@ -52,7 +52,7 @@ export function Slider({
         disabled={disabled}
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
-      {hint && <p className="text-[11px] leading-snug text-slate-500">{hint}</p>}
+      {hint && <p className="text-[11px] leading-snug text-fg-faint">{hint}</p>}
     </div>
   )
 }

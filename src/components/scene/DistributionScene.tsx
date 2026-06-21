@@ -5,6 +5,8 @@ import type { Phase } from '@/simulation/types'
 import { faultGeometry } from '@/simulation/runSimulation'
 import { getConductor } from '@/simulation/conductorCatalog'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useThemeStore } from '@/state/useThemeStore'
+import { useThemeColors } from '@/theme/useThemeColors'
 import { frameAtMs } from '@/utils/frames'
 import { clamp } from '@/utils/math'
 import { Pole } from './Pole'
@@ -79,6 +81,8 @@ function SceneContent({ g }: { g: Geometry }) {
 export function DistributionScene() {
   const scenario = useScenarioStore((s) => s.scenario)
   const mode = useScenarioStore((s) => s.mode)
+  const palette = useThemeColors()
+  const isDark = useThemeStore((s) => s.resolved === 'dark')
 
   const g = useMemo<Geometry>(() => {
     const spacingU = scenario.phaseSpacingFt
@@ -109,17 +113,20 @@ export function DistributionScene() {
   ])
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-edge bg-[#080f1a]">
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-edge bg-scene">
       <Canvas dpr={[1, 1.8]} camera={{ position: [-34, 15, 40], fov: 44, near: 0.1, far: 400 }}>
-        <color attach="background" args={['#080f1a']} />
-        <fog attach="fog" args={['#080f1a', 70, 165]} />
+        <color attach="background" args={[palette.sceneBg]} />
+        <fog attach="fog" args={[palette.sceneBg, 70, 165]} />
 
-        <ambientLight intensity={0.28} />
-        <hemisphereLight args={['#bcd5ff', '#0a0f17', 0.55]} />
-        <directionalLight position={[16, 26, 14]} intensity={1.1} color="#d6e6ff" />
-        <directionalLight position={[-20, 8, -12]} intensity={0.4} color="#3b6fb0" />
+        <ambientLight intensity={isDark ? 0.28 : 0.72} />
+        <hemisphereLight args={['#bcd5ff', isDark ? '#0a0f17' : '#dfe7f2', isDark ? 0.55 : 0.7]} />
+        <directionalLight position={[16, 26, 14]} intensity={isDark ? 1.1 : 1.0} color={isDark ? '#d6e6ff' : '#ffffff'} />
+        <directionalLight position={[-20, 8, -12]} intensity={isDark ? 0.4 : 0.3} color={isDark ? '#3b6fb0' : '#9db8db'} />
 
-        <gridHelper args={[180, 60, '#23394f', '#0f1a26']} position={[0, -POLE_HEIGHT, g.centerZ]} />
+        <gridHelper
+          args={[180, 60, palette.sceneGridMajor, palette.sceneGridMinor]}
+          position={[0, -POLE_HEIGHT, g.centerZ]}
+        />
 
         <SceneContent g={g} />
         <CameraRig mode={mode} targetZ={g.centerZ} />
@@ -129,11 +136,11 @@ export function DistributionScene() {
       {/* overlays */}
       <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-lg border border-edge/60 bg-panel/70 px-3 py-1.5 backdrop-blur">
         <span className="h-1.5 w-1.5 rounded-full bg-energized" />
-        <span className="text-xs font-medium text-slate-300">
+        <span className="text-xs font-medium text-fg-muted">
           {scenario.voltageClassKv} kV · {scenario.faultType} fault · two spans from a center pole
         </span>
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[280px] text-[10px] leading-snug text-slate-500">
+      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[280px] text-[10px] leading-snug text-fg-faint">
         Left span {scenario.spanLengthFt} ft (faulted) · right span {scenario.secondSpanLengthFt} ft.
         Lateral motion shown at ~{DISP_GAIN}× for clarity.
       </div>

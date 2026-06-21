@@ -1,33 +1,41 @@
+import { Suspense, lazy } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { BRAND } from '@/theme/brand'
 import { ControlPanel } from './ControlPanel'
 import { ResultsPanel } from './ResultsPanel'
 import { TimelinePanel } from './TimelinePanel'
 import { ModeTabs } from './ModeTabs'
 import { PlaybackControls } from './PlaybackControls'
 import { ApcLogo } from './ApcLogo'
-import { DistributionScene } from '@/components/scene/DistributionScene'
+import { ThemeToggle } from './ThemeToggle'
+import { Spinner } from '@/components/ui/Spinner'
 import { ForceChart } from '@/components/charts/ForceChart'
 import { DisplacementChart } from '@/components/charts/DisplacementChart'
 import { TccChart } from '@/components/charts/TccChart'
 
-const PRESENTER = 'Arianna Surya'
+// Code-split the heavy three.js / react-three-fiber scene out of the initial bundle.
+const DistributionScene = lazy(() =>
+  import('@/components/scene/DistributionScene').then((m) => ({ default: m.DistributionScene })),
+)
 
 function Header() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/50 px-4 backdrop-blur">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/60 px-4 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <ApcLogo />
         <div className="h-8 w-px bg-edge" />
         <div>
-          <h1 className="text-sm font-semibold leading-tight text-slate-100">Conductor Slap Simulator</h1>
-          <p className="text-[11px] leading-tight text-slate-500">
-            Presented by <span className="text-brand">{PRESENTER}</span> · APC Relay Engineering
+          <h1 className="text-sm font-semibold leading-tight text-fg">Conductor Slap Simulator</h1>
+          <p className="text-[11px] leading-tight text-fg-faint">
+            Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <PlaybackControls />
+        <div className="h-6 w-px bg-edge" />
         <ModeTabs />
+        <ThemeToggle />
       </div>
     </header>
   )
@@ -35,12 +43,15 @@ function Header() {
 
 function PresentationCard() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-3 pt-7">
-      <ApcLogo size="lg" />
-      <div className="text-center">
-        <div className="text-xl font-semibold tracking-tight text-slate-50">Conductor Slap Simulator</div>
-        <div className="mt-0.5 text-xs text-slate-400">
-          Presented by <span className="text-brand">{PRESENTER}</span> · APC Relay Engineering
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-3 pt-8">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-edge/70 bg-panel/70 px-8 py-5 shadow-panel backdrop-blur-md">
+        <ApcLogo size="lg" />
+        <div className="text-center">
+          <div className="label-eyebrow mb-1 text-brand">12.47 kV distribution demo</div>
+          <div className="text-xl font-semibold tracking-tight text-fg">Conductor Slap Simulator</div>
+          <div className="mt-1 text-xs text-fg-muted">
+            Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
+          </div>
         </div>
       </div>
     </div>
@@ -62,7 +73,15 @@ export function Shell() {
 
         <main className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="relative min-h-0 flex-1">
-            <DistributionScene />
+            <Suspense
+              fallback={
+                <div className="grid h-full w-full place-items-center rounded-xl border border-edge bg-scene">
+                  <Spinner label="Loading scene…" />
+                </div>
+              }
+            >
+              <DistributionScene />
+            </Suspense>
             {presentation && <PresentationCard />}
           </div>
           <TimelinePanel />

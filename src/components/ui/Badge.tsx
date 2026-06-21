@@ -8,8 +8,8 @@ const tones: Record<BadgeTone, string> = {
   healthy: 'bg-healthy/12 text-healthy border-healthy/25',
   caution: 'bg-caution/12 text-caution border-caution/25',
   fault: 'bg-fault/12 text-fault border-fault/25',
-  deenergized: 'bg-deenergized/15 text-slate-300 border-deenergized/30',
-  neutral: 'bg-white/5 text-slate-300 border-edge',
+  deenergized: 'bg-deenergized/15 text-fg-muted border-deenergized/30',
+  neutral: 'bg-fg/5 text-fg-muted border-edge',
 }
 
 export function Badge({

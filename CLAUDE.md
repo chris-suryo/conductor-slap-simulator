@@ -63,12 +63,37 @@ certified engineering tool. Keep that framing; don't present the physics as exac
   conductor's outward swing **peak** (`runSimulation` computes this) so the rebound is large and
   the slap is reliable rather than depending on timing luck.
 
+## Theming (dark/light) — how colors flow
+
+- **One source of truth:** `src/theme/tokens.ts` holds per-theme NEUTRAL palettes (surfaces,
+  text, borders, scene environment) + theme-CONSTANT `STATUS` colors (energized/fault/arc/… —
+  they encode physics/protection meaning and must read the same in both themes). The neutral
+  triples are mirrored in the `.dark`/`.light` blocks of `src/index.css` (keep them in sync).
+- **Three consumers, one source:** (1) Tailwind utilities map to `rgb(var(--token) /
+  <alpha-value>)` in `tailwind.config.js`, so `bg-panel`/`text-fg`/`border-edge` flip
+  automatically; (2) Recharts reads concrete strings via `useChartTheme()`; (3) the 3D scene's
+  themeable neutrals (bg/fog/grid/poles) come from `useThemeColors()` and re-render only on
+  theme change — its per-frame `useFrame` code reads only constant `COLORS`/status, so the hot
+  path never reacts to a theme switch.
+- **Theme state:** `src/state/useThemeStore.ts` (dark default, persisted to `localStorage`,
+  `prefers-color-scheme` aware), `ThemeToggle` in the header, and a pre-paint script in
+  `index.html` that sets the class before first paint to avoid a flash. Dev: `window.__theme`.
+- **Use semantic text tokens, not raw slate:** `text-fg` (primary), `text-fg-muted`,
+  `text-fg-faint`. Raw `text-slate-*` won't flip with the theme.
+
+## Brand layer (APC) — swap assets in ONE place
+
+- All brand specifics live in `src/theme/brand.ts` (`BRAND`: colors, wordmark, presenter, logo
+  slot, optional fonts) + `public/brand/` for logo files. To drop in official assets, edit only
+  `brand.ts` (`logo.src`/`colors.accent`/`colors.navy`) and the favicon/title in `index.html`.
+  Look for `TODO(APC)` markers. `ApcLogo` renders the image when set, else a typographic wordmark.
+
 ## Conventions & gotchas
 
 - **Tailwind config changes need a dev-server restart.** If you add/change colors in
-  `tailwind.config.js` and the UI looks half-styled, restart `npm run dev`. Brand colors:
-  `brand` = APC orange `#FD8505`, `navy` = `#0C3552`; status colors (`energized` cyan, `fault`
-  red, etc.) are kept distinct from brand chrome.
+  `tailwind.config.js` and the UI looks half-styled, restart `npm run dev`. Brand colors come
+  from `src/theme/brand.ts` (`brand` = APC orange `#FD8505`, `navy` = `#0C3552`); status colors
+  (`energized` cyan, `fault` red, etc.) are theme-constant and kept distinct from brand chrome.
 - **Dev-only HMR quirk:** the Zustand store is exposed as `window.__store` in dev (bottom of
   `useScenarioStore.ts`) for quick scripting/inspection. After a hot reload the store can briefly
   duplicate — do a full page reload before trusting in-page debugging.

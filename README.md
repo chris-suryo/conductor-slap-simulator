@@ -119,13 +119,25 @@ src/
     runSimulation    Ties it together; also computes the second (witness) span
     constants.ts     ⭐ The hand-tuned "educational" constants live here
   state/             Zustand store + scenario presets + the playback clock
+  theme/             Theme tokens (dark/light), applyTheme, brand layer (brand.ts)
   components/
     scene/           react-three-fiber 3D scene (poles, conductors, force/arc effects)
     charts/          recharts force / clearance / TCC charts
-    layout/          Header, control panel, results, timeline, APC logo
+    layout/          Header, control panel, results, timeline, APC logo, theme toggle
     ui/              Small Tailwind UI primitives
   tests/             Vitest unit + calibration tests
 ```
+
+### Theming & branding
+
+The UI ships **dark (default) + light** themes from one source of truth in `src/theme/tokens.ts`,
+surfaced as CSS variables that drive Tailwind utilities, the charts, and the 3D scene. The header
+toggle persists the choice (and respects `prefers-color-scheme`).
+
+All APC brand specifics live in **`src/theme/brand.ts`** (colors, wordmark, presenter) plus
+`public/brand/` for logo files. To drop in official assets, edit only `brand.ts` (set
+`logo.src` / `colors.accent` / `colors.navy`) and the favicon in `index.html` — see the
+`TODO(APC)` markers.
 
 For a deeper architecture explanation, see [`CLAUDE.md`](CLAUDE.md).
 
@@ -134,18 +146,19 @@ For a deeper architecture explanation, see [`CLAUDE.md`](CLAUDE.md).
 ## Status & roadmap
 
 **Working now:** AB / BC / AC line-to-line faults, full relay + recloser sequence, the 3D
-two-span scene, charts, presentation mode, and APC branding.
+two-span scene, charts, presentation mode, dark/light theming, and APC branding (with a
+swappable brand layer + the 3D scene code-split out of the initial bundle).
 
 **Not done yet (good next tasks):**
 
 - **AG / BG / CG ground faults** and **ABC three-phase** — typed and stubbed; the dropdown
   options are disabled. Each needs a physics model and to be enabled in the UI.
-- **Critical-clearing-boundary overlay** on the TCC chart.
+- **Critical-clearing-boundary overlay** on the TCC chart (and a possible visx/D3/uPlot upgrade
+  for publication-grade log-log gridlines — flagged in `TccChart.tsx`).
 - **Ground-overcurrent settings** and richer per-shot recloser configuration.
 - **Video / GIF export** for sharing clips.
-- **Bundle splitting** (the build warns it's large — fine for a demo, worth doing later).
-- **Logo:** the header "APC" wordmark is recreated in code; swap in the official logo asset if
-  available.
+- **Official APC logo:** the header shows a typographic wordmark until the official asset is
+  dropped into `public/brand/` and wired in `src/theme/brand.ts` (see the `TODO(APC)` markers).
 
 ---
 

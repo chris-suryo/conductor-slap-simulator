@@ -18,7 +18,7 @@ export function CardHeader({
     <div className="mb-3 flex items-start justify-between gap-3">
       <div>
         {eyebrow && <div className="label-eyebrow mb-1">{eyebrow}</div>}
-        {title && <h3 className="text-sm font-semibold leading-tight text-slate-100">{title}</h3>}
+        {title && <h3 className="text-sm font-semibold leading-tight text-fg">{title}</h3>}
       </div>
       {right}
     </div>
