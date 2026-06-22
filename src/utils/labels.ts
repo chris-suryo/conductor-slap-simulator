@@ -25,6 +25,18 @@ export const COLORS = {
   navy: BRAND.colors.navy, // APC navy
 } as const
 
+/**
+ * Theme-CONSTANT emissive colors for decorative scene lights (windows, car lights, street
+ * lamps). The hot per-frame path reads these constants (never the theme hook); day-vs-dusk
+ * is handled by gating emissive *intensity* on `isDark` at render time, not by swapping color.
+ */
+export const SCENE_EMISSIVE = {
+  window: '#ffc578', // warm interior light
+  carHead: '#fff4d6', // headlights
+  carTail: '#ff4030', // taillights
+  lamp: '#ffbc6e', // sodium-ish street lamp
+} as const
+
 export const STATE_META: Record<ProtectionState, { label: string; tone: BadgeTone; color: string }> = {
   NORMAL: { label: 'Normal', tone: 'healthy', color: COLORS.healthy },
   FAULT_ACTIVE: { label: 'Fault active', tone: 'fault', color: COLORS.fault },

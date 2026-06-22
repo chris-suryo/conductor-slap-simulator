@@ -52,6 +52,23 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-pole': '74 61 47',
     'scene-crossarm': '91 102 117',
     'scene-insulator': '170 180 192',
+    // Street/environment (dusk feel in dark). Scene-only — consumed by the 3D scene
+    // via buildPalette(), NOT exposed as Tailwind CSS vars, so not mirrored in index.css.
+    'scene-road': '26 30 38',
+    'scene-road-line': '120 122 110',
+    'scene-grass': '20 33 27',
+    'scene-skyline': '16 26 44',
+    'scene-sun': '255 150 92',
+    // Cinematic dusk additions (lit city). Scene-only — same flow as above.
+    'scene-window': '255 197 120',
+    'scene-window-dim': '120 92 56',
+    'scene-car-head': '255 244 214',
+    'scene-car-tail': '255 64 48',
+    'scene-car-body': '40 46 60',
+    'scene-lamp': '255 188 110',
+    'scene-curb': '46 50 58',
+    'scene-skyline-far': '12 19 34',
+    'scene-transformer': '60 52 42',
   },
   light: {
     base: '237 242 248',
@@ -73,6 +90,22 @@ export const NEUTRALS: Record<ThemeName, Record<string, string>> = {
     'scene-pole': '125 104 80',
     'scene-crossarm': '130 140 154',
     'scene-insulator': '198 206 216',
+    // Street/environment (day feel in light).
+    'scene-road': '120 124 132',
+    'scene-road-line': '232 234 238',
+    'scene-grass': '150 174 130',
+    'scene-skyline': '178 194 212',
+    'scene-sun': '255 244 214',
+    // Cinematic additions (muted in daylight — windows/lamps mostly read "off").
+    'scene-window': '120 132 150',
+    'scene-window-dim': '150 160 174',
+    'scene-car-head': '245 245 235',
+    'scene-car-tail': '220 70 60',
+    'scene-car-body': '150 156 168',
+    'scene-lamp': '255 240 205',
+    'scene-curb': '170 174 182',
+    'scene-skyline-far': '196 208 222',
+    'scene-transformer': '120 110 96',
   },
 }
 
@@ -101,6 +134,20 @@ export interface ThemePalette {
   scenePole: string
   sceneCrossarm: string
   sceneInsulator: string
+  sceneRoad: string
+  sceneRoadLine: string
+  sceneGrass: string
+  sceneSkyline: string
+  sceneSun: string
+  sceneWindow: string
+  sceneWindowDim: string
+  sceneCarHead: string
+  sceneCarTail: string
+  sceneCarBody: string
+  sceneLamp: string
+  sceneCurb: string
+  sceneSkylineFar: string
+  sceneTransformer: string
   // status (constant across themes)
   energized: string
   healthy: string
@@ -134,6 +181,20 @@ export function buildPalette(name: ThemeName): ThemePalette {
     scenePole: triple(n['scene-pole']),
     sceneCrossarm: triple(n['scene-crossarm']),
     sceneInsulator: triple(n['scene-insulator']),
+    sceneRoad: triple(n['scene-road']),
+    sceneRoadLine: triple(n['scene-road-line']),
+    sceneGrass: triple(n['scene-grass']),
+    sceneSkyline: triple(n['scene-skyline']),
+    sceneSun: triple(n['scene-sun']),
+    sceneWindow: triple(n['scene-window']),
+    sceneWindowDim: triple(n['scene-window-dim']),
+    sceneCarHead: triple(n['scene-car-head']),
+    sceneCarTail: triple(n['scene-car-tail']),
+    sceneCarBody: triple(n['scene-car-body']),
+    sceneLamp: triple(n['scene-lamp']),
+    sceneCurb: triple(n['scene-curb']),
+    sceneSkylineFar: triple(n['scene-skyline-far']),
+    sceneTransformer: triple(n['scene-transformer']),
     energized: STATUS.energized,
     healthy: STATUS.healthy,
     caution: STATUS.caution,

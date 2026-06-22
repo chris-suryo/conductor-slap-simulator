@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 104" role="img" aria-label="APC Relay Engineering">
+  <!--
+    APC Relay Engineering — recreated lockup for DARK backgrounds (white ink).
+    Placeholder: signature is the three orange "phase" dots threaded on a line
+    across a rounded lowercase "apc". Swap for the official vector when available.
+    NOTE: <img>-loaded SVGs use system fonts only, so a robust sans stack is used.
+  -->
+  <g font-family="'IBM Plex Sans','Segoe UI',Arial,sans-serif">
+    <!-- wordmark -->
+    <text x="4" y="74" font-size="72" font-weight="700" letter-spacing="-1" fill="#ffffff">apc</text>
+    <!-- three-phase dots threaded on a connecting line (the brand signature) -->
+    <line x1="22" y1="50" x2="120" y2="50" stroke="#fd8505" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="30"  cy="50" r="7.5" fill="#fd8505"/>
+    <circle cx="73"  cy="50" r="7.5" fill="#fd8505"/>
+    <circle cx="112" cy="50" r="7.5" fill="#fd8505"/>
+    <!-- stacked sub-wordmark -->
+    <text x="166" y="47" font-size="25" font-weight="600" letter-spacing="9"   fill="#ffffff">RELAY</text>
+    <text x="166" y="76" font-size="19" font-weight="600" letter-spacing="2.5" fill="#ffffff">ENGINEERING</text>
+  </g>
+</svg>

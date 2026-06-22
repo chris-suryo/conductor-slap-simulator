@@ -5,7 +5,7 @@ shows how short-circuit **magnetic forces** make overhead distribution conductor
 "slap," and how **protective relay / recloser sequencing** changes the outcome.
 
 Built for live presentations (there's a full-screen Presentation mode). Presented by
-**Arianna Surya · APC Relay Engineering**.
+**Harianto Suryo, P.E. · APC Relay Engineering**.
 
 > ⚠️ **Educational visualization only.** It uses simplified physics with hand-tuned
 > constants to build intuition — it is **not** a certified design or relay-setting tool.
@@ -62,6 +62,17 @@ the terminal to stop.
 | `npm test` | Run the model unit tests (must stay green). |
 | `npm run typecheck` | Check TypeScript types (no compile errors). |
 | `npm run build` | Production build into `dist/`. |
+
+### Deploying (Vercel)
+
+The app is a static Vite SPA, so it deploys to any static host. It's wired for **Vercel**:
+`vercel.json` pins the framework (`vite`), build command (`npm run build`), output (`dist`), and
+an SPA fallback rewrite — so Vercel builds it reproducibly and pushes to the connected branch
+trigger deploys (with automatic preview URLs for PRs). No environment variables are required.
+
+> Note: Vercel's free **Hobby** plan is intended for non-commercial use; this is an internal
+> teaching/demo tool. Hosts whose free tier explicitly permits commercial use (Netlify,
+> Cloudflare Pages) are alternatives if that matters — the same `dist/` build works on any of them.
 
 ---
 
@@ -146,8 +157,10 @@ For a deeper architecture explanation, see [`CLAUDE.md`](CLAUDE.md).
 ## Status & roadmap
 
 **Working now:** AB / BC / AC line-to-line faults, full relay + recloser sequence, the 3D
-two-span scene, charts, presentation mode, dark/light theming, and APC branding (with a
-swappable brand layer + the 3D scene code-split out of the initial bundle).
+two-span scene set on a street (road, receding feeder, soft ground shadows, sky, and a faded
+city skyline), **resizable side panels + an "expand scene" toggle**, charts, presentation mode,
+dark/light theming, **IBM Plex typography**, and APC branding with a recreated logo (swappable
+brand layer + the 3D scene code-split out of the initial bundle).
 
 **Not done yet (good next tasks):**
 
@@ -157,8 +170,9 @@ swappable brand layer + the 3D scene code-split out of the initial bundle).
   for publication-grade log-log gridlines — flagged in `TccChart.tsx`).
 - **Ground-overcurrent settings** and richer per-shot recloser configuration.
 - **Video / GIF export** for sharing clips.
-- **Official APC logo:** the header shows a typographic wordmark until the official asset is
-  dropped into `public/brand/` and wired in `src/theme/brand.ts` (see the `TODO(APC)` markers).
+- **Official APC logo:** the header now shows a hand-recreated APC lockup
+  (`public/brand/apc-logo*.svg`). Drop the official vector over those files (keeping the paths
+  in `src/theme/brand.ts`) when it's available.
 
 ---
 

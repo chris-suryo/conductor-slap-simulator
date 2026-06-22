@@ -101,7 +101,7 @@
 
   /* Tighter, engineering-grade numerals on monospace readouts. */
   .font-mono {
-    font-feature-settings: 'tnum' 1, 'cv01' 1, 'ss01' 1;
+    font-feature-settings: 'tnum' 1, 'zero' 1; /* tabular figures + slashed zero (IBM Plex Mono) */
   }
 }
 
@@ -117,8 +117,22 @@
     @apply rounded-lg border border-edge-soft bg-panel-muted;
   }
 
+  /* APC editorial accent: a thin brand rule along the top edge of a card. */
+  .panel-accent {
+    @apply relative;
+  }
+  .panel-accent::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 top-0 h-[2px] rounded-t-xl;
+    background: linear-gradient(90deg, rgb(var(--brand)) 0%, rgb(var(--brand) / 0) 58%);
+  }
+
   .label-eyebrow {
     @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-faint;
+  }
+  /* Section-level eyebrow (card headers) carries the APC orange; field/stat labels stay neutral. */
+  .label-eyebrow-accent {
+    @apply text-brand;
   }
 
   .stat-value {

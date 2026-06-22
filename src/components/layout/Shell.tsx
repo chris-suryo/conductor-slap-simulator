@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useLayoutStore } from '@/state/useLayoutStore'
 import { BRAND } from '@/theme/brand'
 import { ControlPanel } from './ControlPanel'
 import { ResultsPanel } from './ResultsPanel'
@@ -8,6 +9,7 @@ import { ModeTabs } from './ModeTabs'
 import { PlaybackControls } from './PlaybackControls'
 import { ApcLogo } from './ApcLogo'
 import { ThemeToggle } from './ThemeToggle'
+import { ResizeHandle } from './ResizeHandle'
 import { Spinner } from '@/components/ui/Spinner'
 import { ForceChart } from '@/components/charts/ForceChart'
 import { DisplacementChart } from '@/components/charts/DisplacementChart'
@@ -20,7 +22,7 @@ const DistributionScene = lazy(() =>
 
 function Header() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/60 px-4 backdrop-blur-md">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/95 px-4 shadow-panel backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <ApcLogo />
         <div className="h-8 w-px bg-edge" />
@@ -41,34 +43,31 @@ function Header() {
   )
 }
 
-function PresentationCard() {
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-3 pt-8">
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-edge/70 bg-panel/70 px-8 py-5 shadow-panel backdrop-blur-md">
-        <ApcLogo size="lg" />
-        <div className="text-center">
-          <div className="label-eyebrow mb-1 text-brand">12.47 kV distribution demo</div>
-          <div className="text-xl font-semibold tracking-tight text-fg">Conductor Slap Simulator</div>
-          <div className="mt-1 text-xs text-fg-muted">
-            Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function Shell() {
   const presentation = useScenarioStore((s) => s.mode === 'presentation')
+  const sceneExpanded = useLayoutStore((s) => s.sceneExpanded)
+  const leftWidth = useLayoutStore((s) => s.leftWidth)
+  const rightWidth = useLayoutStore((s) => s.rightWidth)
+
+  // Both presentation mode and the "expand scene" toggle collapse the surrounding
+  // chrome (asides + charts + timeline) so the 3D scene takes the whole stage.
+  const chromeHidden = presentation || sceneExpanded
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <Header />
       <div className="flex flex-1 gap-3 overflow-hidden p-3">
-        {!presentation && (
-          <aside className="w-[346px] shrink-0">
-            <ControlPanel />
-          </aside>
+        {!chromeHidden && (
+          <>
+            <aside className="shrink-0" style={{ width: leftWidth }}>
+              <ControlPanel />
+            </aside>
+            <ResizeHandle
+              ariaLabel="Resize controls panel"
+              // Read live width from the store (avoids stale-closure lag during fast drags).
+              onDrag={(d) => useLayoutStore.getState().setLeftWidth(useLayoutStore.getState().leftWidth + d)}
+            />
+          </>
         )}
 
         <main className="flex min-w-0 flex-1 flex-col gap-3">
@@ -82,10 +81,10 @@ export function Shell() {
             >
               <DistributionScene />
             </Suspense>
-            {presentation && <PresentationCard />}
           </div>
-          <TimelinePanel />
-          {!presentation && (
+          {/* Timeline stays visible in presentation mode; only the expand toggle hides it. */}
+          {!sceneExpanded && <TimelinePanel />}
+          {!chromeHidden && (
             <div className="grid grid-cols-3 gap-3">
               <ForceChart />
               <DisplacementChart />
@@ -94,10 +93,16 @@ export function Shell() {
           )}
         </main>
 
-        {!presentation && (
-          <aside className="w-[324px] shrink-0">
-            <ResultsPanel />
-          </aside>
+        {!chromeHidden && (
+          <>
+            <ResizeHandle
+              ariaLabel="Resize results panel"
+              onDrag={(d) => useLayoutStore.getState().setRightWidth(useLayoutStore.getState().rightWidth - d)}
+            />
+            <aside className="shrink-0" style={{ width: rightWidth }}>
+              <ResultsPanel />
+            </aside>
+          </>
         )}
       </div>
     </div>
