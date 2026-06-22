@@ -20,10 +20,15 @@ const FAULT_OPTIONS = [
 ]
 
 const CURVE_OPTIONS = [
-  { value: 'definite', label: 'Definite time' },
+  { value: 'us-moderately-inverse', label: 'US moderately inverse (U1)' },
+  { value: 'us-inverse', label: 'US inverse (U2)' },
+  { value: 'us-very-inverse', label: 'US very inverse (U3)' },
+  { value: 'us-extremely-inverse', label: 'US extremely inverse (U4)' },
+  { value: 'us-short-time-inverse', label: 'US short-time inverse (U5)' },
   { value: 'iec-standard-inverse', label: 'IEC standard inverse' },
   { value: 'iec-very-inverse', label: 'IEC very inverse' },
   { value: 'iec-extremely-inverse', label: 'IEC extremely inverse' },
+  { value: 'definite', label: 'Definite time' },
 ]
 
 const PRESET_BUTTONS = [

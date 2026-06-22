@@ -26,6 +26,13 @@ export type CurveType =
   | 'iec-standard-inverse'
   | 'iec-very-inverse'
   | 'iec-extremely-inverse'
+  // SEL "US" curve set (U1–U5). NOT IEEE C37.112 — SEL's US curves are markedly faster and
+  // are what the field SEL recloser/relay controls actually run. Form: t = TD·(A + B/(M^P − 1)).
+  | 'us-moderately-inverse'
+  | 'us-inverse'
+  | 'us-very-inverse'
+  | 'us-extremely-inverse'
+  | 'us-short-time-inverse'
 
 /** How a given recloser operation ("shot") decides its trip time. */
 export type ShotCurveMode = 'instantaneous' | 'inverse' | 'definite'

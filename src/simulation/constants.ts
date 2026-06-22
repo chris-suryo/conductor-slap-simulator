@@ -23,12 +23,25 @@ export const LINE_FREQ_HZ = 60
  */
 export const NOMINAL_LOAD_CURRENT_A = 200
 
-/** IEC 60255-style inverse-curve constants: t = TMS * (k / (M^alpha - 1) + c). */
+/**
+ * Inverse-curve constants for `t = (TMS|TD) * (k / (M^alpha - 1) + c)`, with `M = I / pickup`.
+ *
+ * IEC 60255 curves use `c = 0`. The SEL "US" curves (U1–U5) map onto the SAME algebraic form
+ * with `c = A`, `k = B`, `alpha = P` from SEL's operate-time equation `t = TD*(A + B/(M^P − 1))`.
+ * These are SEL's own US curves (much faster than textbook IEEE C37.112) — the ones the field
+ * recloser/relay controls actually run. See docs/ENGINEERING_NOTES.md for the validation.
+ */
 export const CURVE_CONSTANTS: Record<CurveType, { k: number; alpha: number; c: number }> = {
   definite: { k: 0, alpha: 1, c: 0 },
   'iec-standard-inverse': { k: 0.14, alpha: 0.02, c: 0 },
   'iec-very-inverse': { k: 13.5, alpha: 1, c: 0 },
   'iec-extremely-inverse': { k: 80, alpha: 2, c: 0 },
+  // SEL US curves (c=A, k=B, alpha=P).
+  'us-moderately-inverse': { k: 0.0104, alpha: 0.02, c: 0.0226 },
+  'us-inverse': { k: 5.95, alpha: 2.0, c: 0.18 },
+  'us-very-inverse': { k: 3.88, alpha: 2.0, c: 0.0963 },
+  'us-extremely-inverse': { k: 5.67, alpha: 2.0, c: 0.0352 },
+  'us-short-time-inverse': { k: 0.00342, alpha: 0.02, c: 0.00262 },
 }
 
 /** Relay sensing + processing latency before a trip decision (ms, ~1.5 cycles). */
