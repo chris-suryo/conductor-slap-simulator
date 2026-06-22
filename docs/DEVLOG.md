@@ -84,6 +84,16 @@ VERIFY TOOLING REMINDER: a fresh `preview_start` resets the viewport to a tiny n
 3-col chart row AND the scene Html overlays only populate at a real size; `preview_resize` to
 1400×900 before checking. Screenshots can succeed when the scene is seek-paused into a frame.
 
+**Split energization fix (user request, post-Phase-5 — commit 3091185):** When the recloser
+trips but the substation breaker stays closed, the section substation→recloser must stay
+ENERGIZED at reduced load (was wrongly shown fully dead). Added `SimulationFrame.upstreamEnergized`
+(runSimulation sets it true for downstream faults — substation breaker closed); `computeWitnessFrames`
+(upstream spans) now use it and carry load current (`NOMINAL_LOAD_CURRENT_A` 200 A → `REDUCED_LOAD_CURRENT_A`
+100 A once the recloser sheds downstream load). ResultsPanel live readout shows "Source side" /
+"100 A src load". 46 tests green. NOTE: editing several files in a row triggered Vite partial-HMR
+errors (stale "X is not defined") — a full page reload (or preview restart) clears them; verify
+against a NEW module `?t=` timestamp.
+
 **Next:** Phase 6 — induced upstream fault behavior (when an energized slap occurs, strike a
 user-set `inducedFaultCurrentA` fault upstream of the recloser, cleared by the substation relay;
 visualize on an upstream span). The control value + upstream routing already exist.
