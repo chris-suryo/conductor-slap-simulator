@@ -83,6 +83,32 @@ describe('two-device coordination — fault location routing', () => {
   })
 })
 
+describe('two-device coordination — split energization', () => {
+  it('keeps the upstream section energized while the recloser is open (downstream fault)', () => {
+    const r = runSimulation({
+      ...DEFAULT_SCENARIO,
+      faultCurrentA: 3140,
+      faultLocation: 'downstream',
+      protection: RECORDED_EVENT_RECLOSER,
+      faultPersists: true,
+    })
+    // There must be frames where the recloser (downstream) is open but the substation breaker
+    // keeps the upstream section live.
+    const reclOpenButUpstreamLive = r.frames.filter((f) => !f.energized && f.upstreamEnergized)
+    expect(reclOpenButUpstreamLive.length).toBeGreaterThan(0)
+    // After lockout the downstream stays dead but the source side remains energized.
+    const last = r.frames[r.frames.length - 1]
+    expect(last.energized).toBe(false)
+    expect(last.upstreamEnergized).toBe(true)
+  })
+
+  it('de-energizes the whole line together when protection is disabled', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, protectionEnabled: false })
+    // No device separation: upstream tracks the (single) energized state, never diverges.
+    expect(r.frames.every((f) => f.upstreamEnergized === f.energized)).toBe(true)
+  })
+})
+
 describe('fault-sim — deterministic reclose outcome', () => {
   it('restores service on the chosen reclose attempt', () => {
     for (const attempt of [1, 2, 3]) {

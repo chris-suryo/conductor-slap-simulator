@@ -152,8 +152,14 @@ export type FinalState = 'RESTORED' | 'SLAP_FAULT' | 'LOCKOUT' | 'NO_TRIP'
 export interface SimulationFrame {
   tMs: number
   state: ProtectionState
-  /** Line is energized (voltage applied). */
+  /** This (downstream, recloser-controlled) section is energized — voltage applied. */
   energized: boolean
+  /**
+   * The UPSTREAM section (substation breaker → source side of the recloser) is energized. Stays
+   * true while the substation breaker is closed even after the recloser opens — so the source
+   * side keeps carrying (reduced) load current rather than going dark with the faulted section.
+   */
+  upstreamEnergized: boolean
   /** Fault current is actually flowing (energized AND a fault is present). */
   faultActive: boolean
   /** Magnitude of fault current used this frame (A); 0 when not faulting. */

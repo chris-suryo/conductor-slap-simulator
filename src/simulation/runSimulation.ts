@@ -24,6 +24,8 @@ import {
   D_MIN_M,
   EDU_FORCE_GAIN,
   FAULT_START_MS,
+  NOMINAL_LOAD_CURRENT_A,
+  REDUCED_LOAD_CURRENT_A,
   SIM_DT_MS,
   SIM_HORIZON_MS,
   TERMINAL_TAIL_MS,
@@ -155,6 +157,16 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
       forceN[pb] = fEff * Math.sign(posPbAbs - posPaAbs || 1)
     }
 
+    // --- upstream (substation-side) energization ---
+    // For a downstream fault the recloser is the operating device; the substation breaker stays
+    // closed, so the section from the substation breaker to the source side of the recloser
+    // remains energized (carrying reduced load) even while the recloser is open. For an upstream
+    // fault, or when protection is disabled, the whole line de-energizes together.
+    const upstreamEnergized =
+      scenario.protectionEnabled && scenario.faultLocation === 'downstream'
+        ? true
+        : snap.energized
+
     // --- record frame at tMs ---
     const dispAFt = mToFt(osc.A.x)
     const dispBFt = mToFt(osc.B.x)
@@ -163,6 +175,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
       tMs,
       state: snap.state,
       energized: snap.energized,
+      upstreamEnergized,
       faultActive: snap.faultActive,
       currentA: snap.faultActive ? I : 0,
       dispAFt,
@@ -281,12 +294,24 @@ export function computeWitnessFrames(
       forceN[pb] = fEff * Math.sign(posPb - posPa || 1)
     }
 
+    // Upstream spans are energized by the substation breaker (pf.upstreamEnergized): they stay
+    // live and carry reduced load current once the recloser opens. They still carry the fault
+    // current while the fault is energized.
+    const upstreamCurrentA = pf.faultActive
+      ? I
+      : pf.energized
+        ? NOMINAL_LOAD_CURRENT_A
+        : pf.upstreamEnergized
+          ? REDUCED_LOAD_CURRENT_A
+          : 0
+
     out.push({
       tMs: pf.tMs,
       state: pf.state,
-      energized: pf.energized,
+      energized: pf.upstreamEnergized,
+      upstreamEnergized: pf.upstreamEnergized,
       faultActive: pf.faultActive,
-      currentA: pf.currentA,
+      currentA: upstreamCurrentA,
       dispAFt: mToFt(osc.A.x),
       dispBFt: mToFt(osc.B.x),
       dispCFt: mToFt(osc.C.x),

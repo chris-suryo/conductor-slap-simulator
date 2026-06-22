@@ -24,6 +24,12 @@ export const LINE_FREQ_HZ = 60
 export const NOMINAL_LOAD_CURRENT_A = 200
 
 /**
+ * Reduced feeder load current (A) carried by the upstream section (through the substation breaker)
+ * once the recloser has opened and shed the downstream load. Educational placeholder.
+ */
+export const REDUCED_LOAD_CURRENT_A = 100
+
+/**
  * Inverse-curve constants for `t = (TMS|TD) * (k / (M^alpha - 1) + c)`, with `M = I / pickup`.
  *
  * IEC 60255 curves use `c = 0`. The SEL "US" curves (U1–U5) map onto the SAME algebraic form

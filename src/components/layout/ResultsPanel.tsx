@@ -3,7 +3,7 @@ import { useScenarioStore } from '@/state/useScenarioStore'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { frameAtMs } from '@/utils/frames'
-import { NOMINAL_LOAD_CURRENT_A } from '@/simulation/constants'
+import { NOMINAL_LOAD_CURRENT_A, REDUCED_LOAD_CURRENT_A } from '@/simulation/constants'
 import {
   CONTACT_META,
   FINAL_META,
@@ -49,11 +49,19 @@ function LiveStatus() {
             <span
               className={cn(
                 'h-2 w-2 rounded-full',
-                frame.energized ? 'bg-energized shadow-glow shadow-energized' : 'bg-deenergized',
+                frame.energized
+                  ? 'bg-energized shadow-glow shadow-energized'
+                  : frame.upstreamEnergized
+                    ? 'bg-caution'
+                    : 'bg-deenergized',
               )}
             />
-            <span className={frame.energized ? 'text-energized' : 'text-fg-muted'}>
-              {frame.energized ? 'Energized' : 'Open'}
+            <span
+              className={
+                frame.energized ? 'text-energized' : frame.upstreamEnergized ? 'text-caution' : 'text-fg-muted'
+              }
+            >
+              {frame.energized ? 'Energized' : frame.upstreamEnergized ? 'Source side' : 'Open'}
             </span>
           </div>
         </div>
@@ -66,6 +74,11 @@ function LiveStatus() {
               <span className="text-fg">
                 {fmtAmps(NOMINAL_LOAD_CURRENT_A)}
                 <span className="ml-1 text-[10px] font-normal text-fg-faint">load</span>
+              </span>
+            ) : frame.upstreamEnergized ? (
+              <span className="text-caution">
+                {fmtAmps(REDUCED_LOAD_CURRENT_A)}
+                <span className="ml-1 text-[10px] font-normal text-fg-faint">src load</span>
               </span>
             ) : (
               <span className="text-fg-muted">—</span>
