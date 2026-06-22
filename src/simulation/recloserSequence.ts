@@ -86,6 +86,12 @@ export interface ProtectionControllerOptions {
   faultStartMs: number
   /** Energized duration before a single slow clearing when the relay never trips (ms). */
   noProtectionClearMs?: number
+  /**
+   * Genuine persistent fault: every reclose re-strikes regardless of conductor clearance, so the
+   * device sequences to lockout. When false/undefined, the reclose outcome follows the conductor
+   * clearance (slap mechanism).
+   */
+  faultPersists?: boolean
 }
 
 /**
@@ -223,7 +229,11 @@ export class ProtectionController {
           this.emittedReclose = true
           this.push(this.recloseAtMs, 'RECLOSE', 'reclose', 'Reclose', 'Voltage reapplied')
         }
-        const outcome = recloseOutcome(clearanceFt, thresholdFt, slappedDuringDeadTime)
+        const outcome = recloseOutcome(
+          clearanceFt,
+          thresholdFt,
+          slappedDuringDeadTime || !!this.opts.faultPersists,
+        )
         if (outcome === 'restore') {
           this.faultPresent = false
           this.push(this.recloseAtMs, 'RESTORED', 'restored', 'Service restored', 'Conductors clear — reclose successful')

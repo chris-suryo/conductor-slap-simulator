@@ -35,6 +35,7 @@ const PRESET_BUTTONS = [
   { id: 'protected', label: 'Protected', tone: COLORS.healthy },
   { id: 'no-protection', label: 'No protection', tone: COLORS.fault },
   { id: 'restrike', label: 'Reclose into slap', tone: COLORS.arc },
+  { id: 'recorded-event', label: 'Recorded event (3140 A)', tone: COLORS.energized },
 ]
 
 export function ControlPanel() {
@@ -60,7 +61,7 @@ export function ControlPanel() {
       {/* Presets */}
       <Card>
         <CardHeader eyebrow="Scenario presets" title="Run a teaching scenario" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {PRESET_BUTTONS.map((b) => (
             <button
               key={b.id}

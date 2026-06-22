@@ -59,12 +59,19 @@ export interface RecloseShot {
 }
 
 export interface ProtectionSettings {
+  /**
+   * CT ratio (e.g. 1000 means 1000:1). The relay/recloser is set in SECONDARY amps; primary
+   * pickup = ctr * secondary. The model computes in PRIMARY amps (`phasePickupA`); `ctr` lets the
+   * UI read like a real device (show/enter secondary) and label the CTR. Display-only for physics.
+   */
+  ctr: number
+  /** Phase pickup in PRIMARY amps (= ctr * secondary). Source of truth for the model. */
   phasePickupA: number
   groundPickupA: number
   phaseInstantaneousPickupA: number
   groundInstantaneousPickupA: number
   curveType: CurveType
-  /** Time multiplier setting (TMS) for inverse curves. */
+  /** Time multiplier / time-dial setting (TMS / TD) for inverse curves. */
   timeMultiplier: number
   /** Trip time for definite-time mode (ms). */
   definiteTimeMs: number
@@ -74,6 +81,9 @@ export interface ProtectionSettings {
   shotsToLockout: number
   recloseShots: RecloseShot[]
 }
+
+/** Where the fault sits relative to the recloser on the radial feeder. */
+export type FaultLocation = 'downstream' | 'upstream'
 
 export interface Scenario {
   voltageClassKv: number
@@ -87,7 +97,27 @@ export interface Scenario {
   faultType: FaultType
   conductorTypeId: string
   protectionEnabled: boolean
+  /**
+   * The DOWNSTREAM **recloser** (G&W, SEL control) — the primary operating device for faults
+   * downstream of it. (Field name kept as `protection` for compatibility.)
+   */
   protection: ProtectionSettings
+  /** The UPSTREAM **substation feeder relay** — backup for downstream faults, primary for upstream. */
+  substationRelay: ProtectionSettings
+  /**
+   * Fault position relative to the recloser. `downstream` → current flows through both devices
+   * (recloser operates, relay backs up and resets if the recloser clears first). `upstream` →
+   * only the substation relay sees the fault and operates (radial feeder; no current through the
+   * recloser for a fault on its source side).
+   */
+  faultLocation: FaultLocation
+  /**
+   * When true, the fault is treated as a genuine persistent fault (e.g. a downed conductor),
+   * so every reclose re-strikes regardless of conductor position — the device sequences through
+   * its shots to lockout. When false/undefined the reclose outcome is decided by conductor
+   * clearance (the slap mechanism). Used by the recorded-event preset and the fault-sim UX.
+   */
+  faultPersists?: boolean
 }
 
 /** Finite-state machine states for the protection / reclose sequence. */

@@ -91,12 +91,19 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
   const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
   const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
 
+  // Pick the operating device by fault position on the radial feeder. A downstream fault drives
+  // current through both devices — the recloser operates (it is set faster) and the substation
+  // relay backs up. A fault UPSTREAM of the recloser puts no current through the recloser, so only
+  // the substation relay sees and clears it.
+  const operatingDevice =
+    scenario.faultLocation === 'upstream' ? scenario.substationRelay : scenario.protection
   const controller = new ProtectionController({
     protectionEnabled: scenario.protectionEnabled,
     faultCurrentA: I,
-    settings: scenario.protection,
+    settings: operatingDevice,
     faultStartMs: FAULT_START_MS,
     noProtectionClearMs: noProtClearMs,
+    faultPersists: scenario.faultPersists,
   })
 
   const osc: Record<Phase, OscillatorState> = {
