@@ -63,6 +63,7 @@ export function ControlPanel() {
   const setFaultType = useScenarioStore((s) => s.setFaultType)
   const setProtectionEnabled = useScenarioStore((s) => s.setProtectionEnabled)
   const restart = useScenarioStore((s) => s.restart)
+  const stop = useScenarioStore((s) => s.stop)
 
   // Reclose-outcome selector maps to the deterministic model fields.
   const recloseOutcomeValue =
@@ -176,12 +177,20 @@ export function ControlPanel() {
             fill={COLORS.arc}
             hint="Magnitude of a slap-induced fault upstream of the recloser (cleared by the substation relay)."
           />
-          <button
-            onClick={() => restart()}
-            className="w-full rounded-lg border border-transparent bg-fault px-3 py-2 text-xs font-semibold text-on-accent transition-opacity hover:opacity-90"
-          >
-            ▶ Run fault simulation
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => restart()}
+              className="flex-1 rounded-lg border border-transparent bg-fault px-3 py-2 text-xs font-semibold text-on-accent transition-opacity hover:opacity-90"
+            >
+              ▶ Run simulation
+            </button>
+            <button
+              onClick={() => stop()}
+              className="flex-1 rounded-lg border border-edge bg-panel-raised px-3 py-2 text-xs font-semibold text-fg-muted transition-colors hover:border-edge-bright hover:text-fg"
+            >
+              ■ Stop &amp; reset
+            </button>
+          </div>
         </div>
       </Card>
 
