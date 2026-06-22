@@ -59,5 +59,18 @@ event recloser now derives from the default + an armed fast element. All presets
 (protected RESTORED 94 ms; no-protection SLAP; restrike SLAP→LOCKOUT 298 ms; recorded-event TOC
 434 ms→LOCKOUT, 4 trips). 43 tests green.
 
-**Next:** Phase 4 — fault-simulation UX (FAULT SIMULATION control, reclose-success-on-Nth-attempt,
-manual induced-fault magnitude).
+**Phase 4 (done — commit 2e442b7):** Fault-simulation UX. New "Fault simulation" card in the
+control panel: quick downstream-magnitude buttons (1.5/3.14/5/8.5 kA), the draggable fault-current
+slider (moved out of the Scenario card), a fault-location selector (downstream/upstream), a
+reclose-outcome selector, an induced upstream-fault magnitude input, and a "Run fault simulation"
+button (restarts playback). Reclose-outcome maps to `Scenario.restoreOnReclose` (restore on
+1st/2nd/3rd attempt) / `faultPersists` (lockout) / clearance-physics. Added
+`Scenario.inducedFaultCurrentA` (control value; behavior lands in Phase 6). Verified live:
+clearOn1/2/3 → 1/2/3 trips RESTORED, lockout → 4 trips; upstream routing → relay. 44 tests green.
+
+**Paused here for user review (per request: "continue to phase 4 only and let me review after").**
+
+**Next:** Phase 5 — 3D scene (≥3 spans, faulted span = span 3, G&W recloser + cabinet at P2,
+billboarded "S" source marker, arc at remote end of span 3). Then Phase 6 (induced upstream fault
+behavior, using `inducedFaultCurrentA`). NOTE for Phase 5: the scene is hardwired to 2 spans in
+`DistributionScene.tsx` SceneContent (3 poles + 2 <Span>s); parametrize it. `FaultArc.tsx` exists.
