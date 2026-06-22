@@ -94,6 +94,14 @@ ENERGIZED at reduced load (was wrongly shown fully dead). Added `SimulationFrame
 errors (stale "X is not defined") — a full page reload (or preview restart) clears them; verify
 against a NEW module `?t=` timestamp.
 
+**Split live-state readout (user request — commit ef23b0a):** Replaced the single "Now playing"
+card with TWO device cards in `ResultsPanel`: **Recloser** (FSM-state badge, Closed/Open, current
+through it, live clearance) and **Substation breaker** (Closed/Open, current through it). Per-device
+current logic: both carry the fault current during the fault; with no fault the recloser passes
+downstream load while closed (none when open) and the substation passes full load (recloser closed)
+or reduced 100 A (recloser open). Verified live (fault: both 3.14 kA; recloser-open: recloser —,
+substation 100 A; normal: both 200 A). 46 tests green.
+
 **Next:** Phase 6 — induced upstream fault behavior (when an energized slap occurs, strike a
 user-set `inducedFaultCurrentA` fault upstream of the recloser, cleared by the substation relay;
 visualize on an upstream span). The control value + upstream routing already exist.
