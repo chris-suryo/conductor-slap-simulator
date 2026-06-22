@@ -104,6 +104,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     faultStartMs: FAULT_START_MS,
     noProtectionClearMs: noProtClearMs,
     faultPersists: scenario.faultPersists,
+    restoreOnReclose: scenario.restoreOnReclose,
   })
 
   const osc: Record<Phase, OscillatorState> = {

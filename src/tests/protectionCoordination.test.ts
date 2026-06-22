@@ -82,3 +82,20 @@ describe('two-device coordination — fault location routing', () => {
     expect(r.tripTimeMs! / 1000).toBeCloseTo(0.814, 1)
   })
 })
+
+describe('fault-sim — deterministic reclose outcome', () => {
+  it('restores service on the chosen reclose attempt', () => {
+    for (const attempt of [1, 2, 3]) {
+      const r = runSimulation({
+        ...DEFAULT_SCENARIO,
+        faultCurrentA: 3140,
+        faultLocation: 'downstream',
+        protection: RECORDED_EVENT_RECLOSER,
+        restoreOnReclose: attempt,
+      })
+      // Re-strike on earlier attempts, restore on the chosen one → exactly `attempt` trips.
+      expect(r.numTrips).toBe(attempt)
+      expect(r.finalState).toBe('RESTORED')
+    }
+  })
+})

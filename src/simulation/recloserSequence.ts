@@ -92,6 +92,11 @@ export interface ProtectionControllerOptions {
    * clearance (slap mechanism).
    */
   faultPersists?: boolean
+  /**
+   * Deterministically restore on this reclose attempt (1-based): re-strike on earlier attempts,
+   * restore on this one. Overrides `faultPersists` and the clearance-based outcome when set.
+   */
+  restoreOnReclose?: number
 }
 
 /**
@@ -229,11 +234,19 @@ export class ProtectionController {
           this.emittedReclose = true
           this.push(this.recloseAtMs, 'RECLOSE', 'reclose', 'Reclose', 'Voltage reapplied')
         }
-        const outcome = recloseOutcome(
-          clearanceFt,
-          thresholdFt,
-          slappedDuringDeadTime || !!this.opts.faultPersists,
-        )
+        // A deterministic "restore on attempt N" overrides everything: re-strike until this
+        // reclose attempt (= the operation that just tripped), then restore. Otherwise fall back
+        // to a persistent fault or the conductor-clearance (slap) decision.
+        let outcome: RecloseOutcome
+        if (this.opts.restoreOnReclose != null) {
+          outcome = this.shot >= this.opts.restoreOnReclose ? 'restore' : 'restrike'
+        } else {
+          outcome = recloseOutcome(
+            clearanceFt,
+            thresholdFt,
+            slappedDuringDeadTime || !!this.opts.faultPersists,
+          )
+        }
         if (outcome === 'restore') {
           this.faultPresent = false
           this.push(this.recloseAtMs, 'RESTORED', 'restored', 'Service restored', 'Conductors clear — reclose successful')

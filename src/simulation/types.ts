@@ -118,6 +118,18 @@ export interface Scenario {
    * clearance (the slap mechanism). Used by the recorded-event preset and the fault-sim UX.
    */
   faultPersists?: boolean
+  /**
+   * Deterministically restore service on this reclose attempt (1-based): the fault re-strikes on
+   * earlier attempts and clears on this one. Overrides `faultPersists` and the clearance-based
+   * outcome when set. Lets the demo show a successful reclose on the 1st/2nd/3rd attempt.
+   */
+  restoreOnReclose?: number
+  /**
+   * Predetermined magnitude (A, primary) of a magnetically-induced fault that a conductor slap can
+   * strike UPSTREAM of the recloser (cleared by the substation relay). Control value used by the
+   * induced-fault feature; set manually in the fault-sim UI.
+   */
+  inducedFaultCurrentA?: number
 }
 
 /** Finite-state machine states for the protection / reclose sequence. */

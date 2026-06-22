@@ -1,6 +1,6 @@
 import { useScenarioStore } from '@/state/useScenarioStore'
 import { CONDUCTOR_CATALOG } from '@/simulation/conductorCatalog'
-import type { CurveType, FaultType } from '@/simulation/types'
+import type { CurveType, FaultLocation, FaultType } from '@/simulation/types'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Slider } from '@/components/ui/Slider'
 import { Select } from '@/components/ui/Select'
@@ -38,6 +38,22 @@ const PRESET_BUTTONS = [
   { id: 'recorded-event', label: 'Recorded event (3140 A)', tone: COLORS.energized },
 ]
 
+const FAULT_LOCATION_OPTIONS = [
+  { value: 'downstream', label: 'Downstream of recloser' },
+  { value: 'upstream', label: 'Upstream (toward substation)' },
+]
+
+const RECLOSE_OUTCOME_OPTIONS = [
+  { value: 'physics', label: 'By conductor motion (slap)' },
+  { value: 'lockout', label: 'Persists → lockout' },
+  { value: '1', label: 'Clears on 1st reclose' },
+  { value: '2', label: 'Clears on 2nd reclose' },
+  { value: '3', label: 'Clears on 3rd reclose' },
+]
+
+/** Quick-select downstream fault magnitudes (A). */
+const QUICK_MAGNITUDES = [1500, 3140, 5000, 8500]
+
 export function ControlPanel() {
   const scenario = useScenarioStore((s) => s.scenario)
   const activePresetId = useScenarioStore((s) => s.activePresetId)
@@ -46,6 +62,20 @@ export function ControlPanel() {
   const patchProtection = useScenarioStore((s) => s.patchProtection)
   const setFaultType = useScenarioStore((s) => s.setFaultType)
   const setProtectionEnabled = useScenarioStore((s) => s.setProtectionEnabled)
+  const restart = useScenarioStore((s) => s.restart)
+
+  // Reclose-outcome selector maps to the deterministic model fields.
+  const recloseOutcomeValue =
+    scenario.restoreOnReclose != null
+      ? String(scenario.restoreOnReclose)
+      : scenario.faultPersists
+        ? 'lockout'
+        : 'physics'
+  const setRecloseOutcome = (v: string) => {
+    if (v === 'physics') patchScenario({ restoreOnReclose: undefined, faultPersists: false })
+    else if (v === 'lockout') patchScenario({ restoreOnReclose: undefined, faultPersists: true })
+    else patchScenario({ restoreOnReclose: Number(v), faultPersists: false })
+  }
 
   const p = scenario.protection
   const firstRecloseDelay = p.recloseShots.find((s) => s.operation === 1)?.recloseDelayMs ?? 1000
@@ -83,16 +113,29 @@ export function ControlPanel() {
         </p>
       </Card>
 
-      {/* Scenario */}
+      {/* Fault simulation */}
       <Card>
-        <CardHeader eyebrow="Fault & span" title="Scenario" />
+        <CardHeader eyebrow="Fault simulation" title="Simulate a fault" />
         <div className="space-y-4">
-          <Select
-            label="Fault type"
-            value={scenario.faultType}
-            options={FAULT_OPTIONS}
-            onChange={(v) => setFaultType(v as FaultType)}
-          />
+          <div>
+            <div className="label-eyebrow mb-1.5">Downstream fault current</div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {QUICK_MAGNITUDES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => patchScenario({ faultCurrentA: m })}
+                  className={cn(
+                    'rounded-md border px-1 py-1.5 text-[11px] font-medium transition-colors',
+                    scenario.faultCurrentA === m
+                      ? 'border-transparent bg-fault text-on-accent'
+                      : 'border-edge bg-panel-raised text-fg-muted hover:border-edge-bright',
+                  )}
+                >
+                  {fmtAmps(m)}
+                </button>
+              ))}
+            </div>
+          </div>
           <Slider
             label="Fault current"
             value={scenario.faultCurrentA}
@@ -102,7 +145,55 @@ export function ControlPanel() {
             onChange={(v) => patchScenario({ faultCurrentA: v })}
             format={fmtAmps}
             fill={COLORS.fault}
-            hint="Force between conductors scales with current² — 10× current ≈ 100× force."
+            hint="Drag to set the magnitude. Force between conductors scales with current²."
+          />
+          <Select
+            label="Fault location"
+            value={scenario.faultLocation}
+            options={FAULT_LOCATION_OPTIONS}
+            onChange={(v) => patchScenario({ faultLocation: v as FaultLocation })}
+          />
+          <div>
+            <Select
+              label="Reclose outcome"
+              value={recloseOutcomeValue}
+              options={RECLOSE_OUTCOME_OPTIONS}
+              onChange={setRecloseOutcome}
+            />
+            <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">
+              Force a successful reclose on a chosen attempt, persist to lockout, or let conductor
+              motion decide.
+            </p>
+          </div>
+          <Slider
+            label="Induced upstream fault"
+            value={scenario.inducedFaultCurrentA ?? 6000}
+            min={1500}
+            max={10000}
+            step={100}
+            onChange={(v) => patchScenario({ inducedFaultCurrentA: v })}
+            format={fmtAmps}
+            fill={COLORS.arc}
+            hint="Magnitude of a slap-induced fault upstream of the recloser (cleared by the substation relay)."
+          />
+          <button
+            onClick={() => restart()}
+            className="w-full rounded-lg border border-transparent bg-fault px-3 py-2 text-xs font-semibold text-on-accent transition-opacity hover:opacity-90"
+          >
+            ▶ Run fault simulation
+          </button>
+        </div>
+      </Card>
+
+      {/* Scenario */}
+      <Card>
+        <CardHeader eyebrow="Fault & span" title="Scenario" />
+        <div className="space-y-4">
+          <Select
+            label="Fault type"
+            value={scenario.faultType}
+            options={FAULT_OPTIONS}
+            onChange={(v) => setFaultType(v as FaultType)}
           />
           <Slider
             label="Faulted span length"
