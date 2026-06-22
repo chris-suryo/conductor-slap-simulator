@@ -3,6 +3,7 @@ import { useScenarioStore } from '@/state/useScenarioStore'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { frameAtMs } from '@/utils/frames'
+import { NOMINAL_LOAD_CURRENT_A } from '@/simulation/constants'
 import {
   CONTACT_META,
   FINAL_META,
@@ -58,8 +59,17 @@ function LiveStatus() {
         </div>
         <div className="panel-muted px-3 py-2">
           <div className="label-eyebrow mb-1">Current</div>
-          <div className="stat-value text-sm font-semibold text-fg">
-            {frame.faultActive ? fmtAmps(frame.currentA) : '—'}
+          <div className="stat-value text-sm font-semibold">
+            {frame.faultActive ? (
+              <span className="text-fault">{fmtAmps(frame.currentA)}</span>
+            ) : frame.energized ? (
+              <span className="text-fg">
+                {fmtAmps(NOMINAL_LOAD_CURRENT_A)}
+                <span className="ml-1 text-[10px] font-normal text-fg-faint">load</span>
+              </span>
+            ) : (
+              <span className="text-fg-muted">—</span>
+            )}
           </div>
         </div>
         <div className="panel-muted px-3 py-2">

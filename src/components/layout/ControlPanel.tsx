@@ -90,7 +90,7 @@ export function ControlPanel() {
           <Slider
             label="Fault current"
             value={scenario.faultCurrentA}
-            min={1000}
+            min={1500}
             max={10000}
             step={100}
             onChange={(v) => patchScenario({ faultCurrentA: v })}

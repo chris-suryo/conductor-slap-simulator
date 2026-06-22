@@ -16,6 +16,13 @@ export const GRAVITY = 9.81
 
 export const LINE_FREQ_HZ = 60
 
+/**
+ * Nominal feeder load current (A) shown in the live readout when the line is energized but not
+ * faulting — so the demo reads as a live circuit carrying load rather than a blank/dash.
+ * Educational placeholder, not a measured value.
+ */
+export const NOMINAL_LOAD_CURRENT_A = 200
+
 /** IEC 60255-style inverse-curve constants: t = TMS * (k / (M^alpha - 1) + c). */
 export const CURVE_CONSTANTS: Record<CurveType, { k: number; alpha: number; c: number }> = {
   definite: { k: 0, alpha: 1, c: 0 },
