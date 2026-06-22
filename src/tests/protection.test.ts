@@ -74,7 +74,9 @@ describe('protection — SEL US curves (event-data calibration)', () => {
 
 describe('protection — trip decision', () => {
   it('trips instantaneously above the instantaneous pickup', () => {
-    const t = relayDecisionMs(7500, DEFAULT_PROTECTION, 'instantaneous')
+    // Use a device with an armed instantaneous element (the default recloser is TOC-only).
+    const withInst = { ...DEFAULT_PROTECTION, phaseInstantaneousPickupA: 2000 }
+    const t = relayDecisionMs(7500, withInst, 'instantaneous')
     expect(t).toBe(RELAY_PROCESSING_MS)
   })
 

@@ -43,5 +43,21 @@ scenarios with `window.__store`; after `seek()`/`applyPreset()` wait ~120–150 
 the DOM (React renders async). `preview_screenshot` times out on the animating WebGL canvas — use
 `preview_eval`/`preview_inspect` instead.
 
-**Next:** Phase 3 — dual TCC chart (recloser + substation relay curves on one log-log plot,
-colored + labeled, per-curve operating-time dots so any fault current is traceable on both).
+**Phase 3 (done — commit 6e6fef3):** Dual TCC chart — recloser (solid orange) + substation relay
+(dashed cyan) on one log-log plot, legend, per-device operating-time dots (recloser 484 ms vs
+relay 864 ms at 3140 A). Verified live at 1400×900 (the 3-col chart row needs width; the preview's
+small native viewport collapses it — resize before checking charts).
+
+**Default-settings change (user request, post-Phase-3):** Made the REAL field settings the app
+defaults for BOTH devices (previously only the recorded-event preset used them; the default
+recloser was still old IEC teaching values). Now `DEFAULT_PROTECTION` = recloser CTR 1000:1 /
+0.9 A sec (900 A) / TD 0.80 / SEL US EI / 12 cyc·1.5 s·10 s, and `DEFAULT_SUBSTATION_RELAY` = CTR
+240:1 / 3.75 A sec (900 A) / TD 1.50 / SEL US EI / 6 cyc·10 s·10 s. "Reclose 3 times" ⇒
+`shotsToLockout = 4` (3 attempts → 4 trips) for both. Re-tuned the `restrike` teaching preset
+(TD 0.3→3.0) so US EI is still slow enough to build a swing (verified: slap + lockout). Recorded-
+event recloser now derives from the default + an armed fast element. All presets verified live
+(protected RESTORED 94 ms; no-protection SLAP; restrike SLAP→LOCKOUT 298 ms; recorded-event TOC
+434 ms→LOCKOUT, 4 trips). 43 tests green.
+
+**Next:** Phase 4 — fault-simulation UX (FAULT SIMULATION control, reclose-success-on-Nth-attempt,
+manual induced-fault magnitude).
