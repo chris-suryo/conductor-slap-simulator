@@ -5,7 +5,7 @@ shows how short-circuit **magnetic forces** make overhead distribution conductor
 "slap," and how **protective relay / recloser sequencing** changes the outcome.
 
 Built for live presentations (there's a full-screen Presentation mode). Presented by
-**Arianna Surya · APC Relay Engineering**.
+**Harianto Suryo, P.E. · APC Relay Engineering**.
 
 > ⚠️ **Educational visualization only.** It uses simplified physics with hand-tuned
 > constants to build intuition — it is **not** a certified design or relay-setting tool.
