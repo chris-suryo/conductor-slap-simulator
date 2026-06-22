@@ -9,7 +9,7 @@ export function CameraRig({ mode, targetZ = 0 }: { mode: ViewMode; targetZ?: num
       enablePan={false}
       target={[0, -3.5, targetZ]}
       minDistance={18}
-      maxDistance={120}
+      maxDistance={150}
       maxPolarAngle={Math.PI * 0.54}
       autoRotate={mode === 'presentation'}
       autoRotateSpeed={0.5}

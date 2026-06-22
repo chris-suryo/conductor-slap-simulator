@@ -70,7 +70,20 @@ clearOn1/2/3 → 1/2/3 trips RESTORED, lockout → 4 trips; upstream routing →
 
 **Paused here for user review (per request: "continue to phase 4 only and let me review after").**
 
-**Next:** Phase 5 — 3D scene (≥3 spans, faulted span = span 3, G&W recloser + cabinet at P2,
-billboarded "S" source marker, arc at remote end of span 3). Then Phase 6 (induced upstream fault
-behavior, using `inducedFaultCurrentA`). NOTE for Phase 5: the scene is hardwired to 2 spans in
-`DistributionScene.tsx` SceneContent (3 poles + 2 <Span>s); parametrize it. `FaultArc.tsx` exists.
+**Phase 5 (done):** 3D scene rework. `DistributionScene.tsx` now renders **3 spans / 4 poles**
+(P0–P3), re-centered on z=0, source at P0 (far) and the faulted span 3 nearest the camera. New
+components: `SourceMarker.tsx` (billboarded drei `<Html>` "S/SOURCE" badge, always faces camera),
+`Recloser.tsx` (pole-mounted G&W tank + bushings + control cabinet + conduit + label at P2),
+`EndFaultArc.tsx` (flickering L-L arc at the remote end of span 3, visible while faultActive).
+`Span.tsx` got a `showEffects` prop (upstream spans render clean, no force arrows/rings). Camera
+moved to [-58,24,52]/fov 46, `CameraRig` maxDistance→150. Verified live (1400×900): S/SOURCE +
+G&W RECLOSER labels render, no console errors, slap scenario plays stably, screenshot confirms the
+scene + remote-end arc glow. 44 tests green.
+
+VERIFY TOOLING REMINDER: a fresh `preview_start` resets the viewport to a tiny native size — the
+3-col chart row AND the scene Html overlays only populate at a real size; `preview_resize` to
+1400×900 before checking. Screenshots can succeed when the scene is seek-paused into a frame.
+
+**Next:** Phase 6 — induced upstream fault behavior (when an energized slap occurs, strike a
+user-set `inducedFaultCurrentA` fault upstream of the recloser, cleared by the substation relay;
+visualize on an upstream span). The control value + upstream routing already exist.
