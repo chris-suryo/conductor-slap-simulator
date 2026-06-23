@@ -6,6 +6,19 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 7: TCC chart legend moved below, caption removed
+
+**User request:** remove the explanatory caption underneath the TCC chart and move the
+"Recloser"/"Substation relay" legend to the bottom of the chart instead of the top.
+`TccChart.tsx`: deleted the legend `<div>` from its old spot between the header and the chart
+container, deleted the trailing `<p>` caption entirely, and re-added the same legend `<div>`
+(centered, `mt-1`) immediately after the chart container so the rendered order is
+header → chart → legend. No logic/data changes. Verified via DOM inspection (child order:
+header div → chart div → legend div, caption text absent) and no console errors. 55 tests green,
+typecheck clean (presentational-only change).
+
+---
+
 ## 2026-06-22 — Session 6: official APC logo
 
 Swapped the recreated/placeholder logo for the official one. Found two matched PNGs (3333×833,

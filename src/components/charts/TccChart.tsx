@@ -91,10 +91,6 @@ export function TccChart() {
         title="Time–current curves (TCC)"
         right={!scenario.protectionEnabled ? <Badge tone="deenergized">Disabled</Badge> : undefined}
       />
-      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-        <LegendDot color={RECLOSER_COLOR} label="Recloser" />
-        <LegendDot color={RELAY_COLOR} label="Substation relay" />
-      </div>
       <div className="h-[clamp(150px,17vh,196px)] w-full">
         <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
@@ -182,10 +178,10 @@ export function TccChart() {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-[10px] text-fg-faint">
-        Clearing time vs fault current for both devices. Dots = this fault's operating time on each
-        curve — the recloser trips first, so the relay resets (backup).
-      </p>
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
+        <LegendDot color={RECLOSER_COLOR} label="Recloser" />
+        <LegendDot color={RELAY_COLOR} label="Substation relay" />
+      </div>
     </Card>
   )
 }
