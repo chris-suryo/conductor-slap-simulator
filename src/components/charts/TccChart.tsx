@@ -212,7 +212,7 @@ export function TccChart() {
           </div>
         }
       />
-      <div className={expanded ? 'min-h-0 flex-1' : 'h-[clamp(24px,3.2vh,36px)] w-full'}>{chart}</div>
+      <div className={expanded ? 'min-h-0 flex-1' : 'aspect-[4/5] w-full'}>{chart}</div>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />

@@ -6,6 +6,25 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 20: charts too flat/small — restored aspect-ratio sizing
+
+**User feedback:** the 3 charts (force, clearance, TCC) had become too small/flat to actually
+see the curves — Session 18's fix for "triple width, keep height" had pinned each chart's plot
+container to a tiny fixed `h-[clamp(24px,3.2vh,36px)]`, decoupled from the (now-wide, 84.9%)
+row width. Reverted `ForceChart.tsx`/`DisplacementChart.tsx`/`TccChart.tsx`'s non-expanded plot
+containers back to `aspect-[4/5] w-full` (the 1:1.25 ratio from Session 12/13), so height once
+again scales with the wide row width instead of being pinned tiny. Verified live at 1440×900:
+each plot now measures 152×190px (ratio 1.250, was 152×28 — clearly flat before), force/
+clearance/TCC curves all visibly readable in a screenshot (was indistinguishable hairlines).
+Also hit a pre-existing gotcha while checking: `useLayoutStore`'s `sceneExpanded` persists to
+`localStorage`, so a leftover "expand scene" click from an earlier session/server restart can
+silently hide the charts entirely on reload — not a regression from this change, but worth
+remembering when charts/asides appear to vanish after a restart (toggle via
+`window.__layout.getState().toggleSceneExpanded()` or the UI button). No console errors. 55
+tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 19: fault fireball + smoke instead of an arc line
 
 **User request:** simulate the fault at the remote end of the faulted span as a small
