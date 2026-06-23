@@ -6,6 +6,73 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-22 — Session 3: TCC legend overflow fix + reset-layout button
+
+**Bug report ("why can't I see the entire page anymore"):** user's screenshot showed the
+"Substation relay" legend label in the TCC chart (`TccChart.tsx`) floating outside its card,
+into the gutter before the right panel. Root cause: the legend row (`flex items-center gap-4`,
+two `LegendDot`s) had no wrap, and `Card` doesn't clip overflow — so once the chart card got
+narrow enough (e.g. after widening the left panel to read the new two-column recloser/relay
+settings, which shrinks the center column), the second label overflowed horizontally instead of
+wrapping. Fix: `flex flex-wrap items-center gap-x-3 gap-y-0.5` — wraps to a second line instead of
+spilling out. Verified by reproducing the exact cramped state (`leftWidth` 520, `rightWidth` 480 —
+the panel max) via `window.__layout`: legend height doubled (wrapped) and stayed inside the card
+bounds (`legendRect.right < cardRect.right`).
+
+**Added a reset-layout button** (`ResetLayoutButton.tsx`, header next to the theme toggle) calling
+the existing `useLayoutStore.resetWidths()` — lets the user recover from an awkward panel-width
+state (like the one that triggered the bug above) without knowing to drag the dividers back.
+Verified live: dragging panels to max then clicking the button snaps `leftWidth`/`rightWidth` back
+to 346/324. 50 tests green, typecheck clean (no model/test changes this session — UI only).
+
+---
+
+## 2026-06-22 — Session 2: split protection settings panel + recloser-disable semantics
+
+**Two-column device settings (user request — uncommitted, ready to commit):** Split the single
+"Protection" card in `ControlPanel.tsx` into a side-by-side comparison: **Recloser (downstream)**
+vs **Substation relay (upstream)**, each showing its actual settings — CTR, phase pickup (primary,
+with a derived "= X.XX A secondary" readout), inverse curve, and time dial — via a new
+`DeviceSettingsColumn` component. Added `patchSubstationRelay` to `useScenarioStore.ts` so the
+relay column is editable, not just a readout. The recloser-only sequence controls (instantaneous
+pickup, breaker open time, first reclose dead time, shots to lockout) stay below as a separate
+"Recloser sequence" block, gated on the recloser-enabled toggle. Time-dial slider max raised
+0.05–1 → 0.05–3 (the `restrike` preset already used TD 3.0 — was silently clipped in the old
+single-device slider).
+
+**Behavior fix that came with it (user-identified gap): "Protection enabled" was disabling BOTH
+devices.** The user's framing: the toggle is the **recloser controller's** enable only; the
+substation relay is a real backup device that's always in service. Expected operation when the
+recloser is disabled: it doesn't react to a downstream fault at all, so the fault rides through to
+the substation relay, which clears it on ITS OWN pickup/curve/TD — and because the relay's breaker
+is the substation breaker, opening it de-energizes the **entire** feeder (no upstream/downstream
+split), current → 0 everywhere. Implemented in `runSimulation.ts` via a `recloserEngaged =
+faultLocation === 'downstream' && protectionEnabled` flag: `operatingDevice = recloserEngaged ?
+protection : substationRelay`, controller always constructed with `protectionEnabled: true` (the
+device-selection step now encodes whether the recloser is "in the loop," not a blanket disable),
+and `upstreamEnergized = recloserEngaged ? true : snap.energized` (split only when the recloser is
+actually the operating device). An upstream fault was already routed to the relay regardless of
+the toggle — now that's deliberate everywhere, not a side effect.
+
+**Calibration-test fallout:** the existing "no protection" teaching preset/tests relied on
+`protectionEnabled: false` meaning **nothing** clears the fault. With the relay now always live,
+DEFAULT_SCENARIO's relay (900 A pickup) would clear a 7500 A fault in ~177 ms — defeating that
+demo. Fixed by neutralizing the relay specifically in the **`no-protection` preset** (pickup
+50000 A, above the fault-slider's 10000 A ceiling) rather than in the engine, preserving the "feeder
+with no working protection at all" teaching case. Updated `runSimulation.test.ts`'s calibration
+tests to consume `PRESETS.find(p => p.id === 'no-protection').scenario` instead of re-deriving the
+old `{ ...DEFAULT_SCENARIO, protectionEnabled: false }` inline (which now means something
+different — a real relay-backup case). Added a new test block asserting the new behavior
+explicitly: disabling the recloser routes to the relay's own curve, the whole line de-energizes
+together, and an upstream fault is unaffected by the recloser toggle either way. 50 tests green
+(47 → 50), typecheck clean. Verified live: recloser-disabled run trips at 177 ms (matches
+`relayDecisionMs` for the relay's settings) with both Recloser and Substation-breaker live cards
+reading Open/— together (no split); `no-protection` preset still shows 0 trips + a slap.
+
+**Next:** Phase 6 — induced upstream fault (unchanged, still pending).
+
+---
+
 ## 2026-06-22 — Session 1: kickoff, plan, Phase 1 foundation
 
 **Branch:** `feature/two-device-protection` (off `main` @ `ccf145d`).
