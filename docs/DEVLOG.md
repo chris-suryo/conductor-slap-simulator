@@ -6,6 +6,23 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-22 — Session 5: minor tweaks — default sag, TCC x-axis floor
+
+**User request:** default conductor sag → 4 ft (was 5); TCC chart x-axis should start at 10 A
+instead of ~1 kA. Two small, independent edits:
+- `DEFAULT_SCENARIO.sagFt` 5 → 4 (`presets.ts`). Re-ran the full suite — the calibration story
+  (protected restores, unprotected slaps) still holds at 4 ft.
+- `TccChart.tsx`: the x-axis domain was pinned to the lower device's pickup (~900 A) — cut off
+  everything below it. Now fixed at `X_AXIS_MIN_A = 10` regardless of pickup (like a real TCC
+  sheet, which always shows full standard decades), with `X_TICKS` extended down to
+  `[10, 100, 1000, 2000, 3000, 5000, 7000, 10000]`. The plotted curve data itself still only starts
+  at the actual pickup (undefined below it) — only the axis/grid extends further left for context.
+  Verified live: domain renders 10A-12kA; Recharts thins overlapping tick labels at the card's
+  narrow width (shows 10/100/1k/3k/10k) but the underlying ticks/gridlines are all present.
+  55 tests still green, typecheck clean.
+
+---
+
 ## 2026-06-22 — Session 4: Phase 6 — induced upstream fault from a witness-span slap
 
 **User report:** "when the recloser trips open after seeing the initial fault and upstream

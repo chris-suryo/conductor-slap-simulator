@@ -78,7 +78,7 @@ export const DEFAULT_SCENARIO: Scenario = {
   spanLengthFt: 250,
   secondSpanLengthFt: 180,
   phaseSpacingFt: 3.5,
-  sagFt: 5,
+  sagFt: 4,
   faultCurrentA: 7500,
   faultType: 'AB',
   conductorTypeId: DEFAULT_CONDUCTOR_ID,

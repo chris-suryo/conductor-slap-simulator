@@ -30,7 +30,10 @@ import { useChartTheme } from './useChartData'
 const fmtTime = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)}s` : `${Math.round(ms)}ms`)
 const fmtAmps = (a: number) => (a >= 1000 ? `${+(a / 1000).toFixed(1)}k` : `${Math.round(a)}`)
 
-const X_TICKS = [1000, 2000, 3000, 5000, 7000, 10000]
+const X_TICKS = [10, 100, 1000, 2000, 3000, 5000, 7000, 10000]
+/** Fixed low end of the x-axis (A) — full standard decades, like a real TCC sheet, regardless of
+ * where either device's pickup happens to sit. */
+const X_AXIS_MIN_A = 10
 const Y_TICKS = [100, 1000, 10000]
 
 // Distinct, theme-constant device colors (orange recloser vs cyan relay).
@@ -78,8 +81,6 @@ export function TccChart() {
   const recloserOp = useMemo(() => firstOpMs(recloser, I), [recloser, I])
   const relayOp = useMemo(() => firstOpMs(relay, I), [relay, I])
 
-  const xLow = Math.max(Math.min(recloser.phasePickupA, relay.phasePickupA), 100)
-
   return (
     <Card className="flex flex-col">
       <CardHeader
@@ -99,7 +100,7 @@ export function TccChart() {
               dataKey="current"
               type="number"
               scale="log"
-              domain={[xLow, 12000]}
+              domain={[X_AXIS_MIN_A, 12000]}
               allowDataOverflow
               ticks={X_TICKS}
               tick={t.axisTick}
