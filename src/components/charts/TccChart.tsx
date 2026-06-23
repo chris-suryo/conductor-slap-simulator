@@ -34,7 +34,10 @@ const X_TICKS = [10, 100, 1000, 2000, 3000, 5000, 7000, 10000]
 /** Fixed low end of the x-axis (A) — full standard decades, like a real TCC sheet, regardless of
  * where either device's pickup happens to sit. */
 const X_AXIS_MIN_A = 10
-const Y_TICKS = [100, 1000, 10000]
+/** Y-axis (clearing time) spans 10 ms to 1000 s, like a real TCC sheet. */
+const Y_AXIS_MIN_MS = 10
+const Y_AXIS_MAX_MS = 1_000_000
+const Y_TICKS = [10, 100, 1000, 10000, 100000, 1000000]
 
 // Distinct, theme-constant device colors (orange recloser vs cyan relay).
 const RECLOSER_COLOR = COLORS.brand
@@ -43,7 +46,7 @@ const RELAY_COLOR = COLORS.energized
 /** Time-overcurrent (inverse) clearing time at a current, or null below pickup. */
 function tocMs(device: ProtectionSettings, current: number): number | null {
   const inv = inverseTripTimeMs(current, device.phasePickupA, device.curveType, device.timeMultiplier)
-  return Number.isFinite(inv) ? Math.min(inv + device.breakerOpenTimeMs, 40000) : null
+  return Number.isFinite(inv) ? Math.min(inv + device.breakerOpenTimeMs, Y_AXIS_MAX_MS) : null
 }
 
 /** The device's actual FIRST-operation clearing time at the fault current (TOC or fast element). */
@@ -111,7 +114,7 @@ export function TccChart() {
             <YAxis
               type="number"
               scale="log"
-              domain={[30, 40000]}
+              domain={[Y_AXIS_MIN_MS, Y_AXIS_MAX_MS]}
               allowDataOverflow
               ticks={Y_TICKS}
               tick={t.axisTick}

@@ -21,6 +21,13 @@ instead of ~1 kA. Two small, independent edits:
   narrow width (shows 10/100/1k/3k/10k) but the underlying ticks/gridlines are all present.
   55 tests still green, typecheck clean.
 
+**Follow-up in the same session:** y-axis (clearing time) range changed to 10 ms – 1000 s (was
+30 ms – 40 s), with `Y_TICKS = [10, 100, 1000, 10000, 100000, 1000000]` (ms) rendering as
+10ms/100ms/1.0s/10s/100s/1000s. Raised the `tocMs()` display cap (`Y_AXIS_MAX_MS`) to match so the
+curve can actually reach the new ceiling instead of flattening at 40s. Verified live: ticks render
+exactly as listed, both device curves + operating-time dots plot correctly within the new range.
+Typecheck clean, 55 tests still green (chart-only, no model changes).
+
 ---
 
 ## 2026-06-22 — Session 4: Phase 6 — induced upstream fault from a witness-span slap
