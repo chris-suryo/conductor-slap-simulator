@@ -76,7 +76,7 @@ export function TimelinePanel() {
   }
 
   return (
-    <div className="panel p-3">
+    <div className="force-light panel p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="label-eyebrow">Protection sequence</div>
         <LivePhaseBadge />

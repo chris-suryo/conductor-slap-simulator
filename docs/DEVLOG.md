@@ -6,6 +6,20 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 15: light background on the Protection sequence panel
+
+**User request:** change the Protection sequence (timeline) panel's background from dark to
+light, same as the charts. `TimelinePanel.tsx`: added the existing `force-light` class (from
+Session 8, originally built for the 3 chart cards) to the panel's root `div`. Since `force-light`
+overrides the same theme CSS vars the panel's `bg-panel`/`bg-panel-muted`/`border-edge`/
+`text-fg*`/`--playhead` utilities read, the whole timeline (track, segments, playhead, event
+chips) flips to light regardless of the app's active theme, with no other code changes. Verified
+live: panel background computed as white (`rgb(255,255,255)`), border slate-200, screenshot
+confirms it now reads light against the dark app shell. No console errors. 55 tests green,
+typecheck clean (presentational-only).
+
+---
+
 ## 2026-06-23 — Session 14: taller 3D scene, smaller charts (ratio unchanged)
 
 **User request:** make the conductor slap simulation (3D scene) section taller and the charts
