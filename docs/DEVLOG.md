@@ -6,6 +6,17 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 17: charts shrunk to a third of their previous size
+
+**User request:** make the 3 charts a third of their current size. `Shell.tsx`: chart grid
+width changed from `w-[85%]` (Session 16) to `w-[28.3%]` (85% ÷ 3) — same `mx-auto … shrink-0
+grid-cols-3 gap-3` wrapper, ratio (`aspect-[4/5]` on each chart) untouched since it's driven by
+column width. Verified via DOM measurement at 1440×900: row width dropped from 583px to 194px
+(583/3 ≈ 194.3, matches exactly), each plot ~23×28 (ratio ~1.23, same family as before, small
+rounding from low pixel counts). No console errors. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 16: chart row width set to 85% of the main column
 
 **User request:** make the 3-chart row occupy 85% of the width of the "bottom front view" (the

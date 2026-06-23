@@ -87,7 +87,7 @@ export function Shell() {
           {/* Timeline stays visible in presentation mode; only the expand toggle hides it. */}
           {!sceneExpanded && <TimelinePanel />}
           {!chromeHidden && (
-            <div className="mx-auto grid w-[85%] shrink-0 grid-cols-3 gap-3">
+            <div className="mx-auto grid w-[28.3%] shrink-0 grid-cols-3 gap-3">
               <ForceChart />
               <DisplacementChart />
               <TccChart />
