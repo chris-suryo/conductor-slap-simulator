@@ -162,7 +162,11 @@ without clicking, use the dev `window.__store`, e.g.
   during an L-L fault. **Protection settings panel shows both devices side by side** (CTR, pickup,
   curve, time dial); the "Protection enabled" toggle is **recloser-only** — disabling it routes a
   downstream fault to the substation relay's own curve, which de-energizes the whole feeder (no
-  upstream/downstream split), matching how a real backup relay behaves.
+  upstream/downstream split), matching how a real backup relay behaves. **Induced upstream fault
+  (Phase 6):** if the still-energized upstream span clashes after the recloser clears the original
+  fault, that strikes a NEW fault (sized by the "Induced upstream fault" control) that the
+  substation relay clears on its own curve, de-energizing the whole feeder; surfaced via
+  `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card.
 - **Stubbed (typed, UI-disabled):** AG/BG/CG ground faults, ABC three-phase
   (`faultGeometry()` returns `isPair: false` for these — they need a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video

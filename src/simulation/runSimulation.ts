@@ -19,9 +19,11 @@ import type {
   Scenario,
   SimulationFrame,
   SimulationResult,
+  UpstreamFaultEvent,
 } from './types'
 import {
   D_MIN_M,
+  DEFAULT_INDUCED_FAULT_A,
   EDU_FORCE_GAIN,
   FAULT_START_MS,
   NOMINAL_LOAD_CURRENT_A,
@@ -276,6 +278,9 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     restPairSeparationFt,
     contactThresholdFt: thresholdFt,
     numTrips,
+    // Populated by computeWitnessFrames (run after this), which mutates this same result object —
+    // see useScenarioStore's rerun(): runSimulation() then computeWitnessFrames(scenario, ..., result).
+    upstreamFaultEvent: null,
   }
 }
 
@@ -284,7 +289,24 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
  * and energization timeline as the primary faulted span, but has its own length. Longer
  * spans swing more; this is how the demo shows one span slapping while a shorter one does
  * not. Returns a frame series aligned 1:1 with the primary result's frames.
+ *
+ * Models a SECOND, independent fault: this upstream span stays energized (carrying load) even
+ * after the recloser clears the original downstream fault — split energization. If it clashes
+ * while still live, that's a fresh bolted fault upstream of the recloser, sized by
+ * `scenario.inducedFaultCurrentA`. From that instant, a second `ProtectionController` for the
+ * SUBSTATION RELAY takes over this span's own energization (own pickup/curve/TD/reclose
+ * schedule) — and, since the substation breaker is upstream of everything, it also overrides
+ * `primary.frames[i].upstreamEnergized`/`.energized` from that point on (mutated in place; the
+ * caller already holds this same `primary` object and stores it after this call returns). Only
+ * armed for downstream-primary scenarios — an upstream-primary fault already has the relay
+ * actively engaged on the original event.
  */
+/**
+ * Generous cap (ms) on how far an induced upstream fault's own reclose schedule can extend the
+ * timeline past the primary run's own horizon (longest relay dead time + a settling tail).
+ */
+const MAX_UPSTREAM_EXTENSION_MS = 13000
+
 export function computeWitnessFrames(
   scenario: Scenario,
   spanLengthFt: number,
@@ -309,50 +331,115 @@ export function computeWitnessFrames(
     B: { x: 0, v: 0 },
     C: { x: 0, v: 0 },
   }
-  const dtS = primary.dtMs / 1000
+  const dtMs = primary.dtMs
+  const dtS = dtMs / 1000
   const out: SimulationFrame[] = []
 
-  for (const pf of primary.frames) {
+  // Only armed when the recloser is actually engaged (split energization keeping this span
+  // independently live) — if it's disabled, the relay is already the operating device for the
+  // ORIGINAL fault, and a second overlapping fault on the same relay isn't physically sensible.
+  const upstreamFaultArmed = scenario.faultLocation === 'downstream' && scenario.protectionEnabled && isPair
+  const inducedI = scenario.inducedFaultCurrentA ?? DEFAULT_INDUCED_FAULT_A
+  let upstreamController: ProtectionController | null = null
+  let upstreamEventAtMs: number | null = null
+  let upstreamPrevState: ProtectionState | null = null
+  let upstreamSlappedDuringDeadTime = false
+  let upstreamTerminalAtMs: number | null = null
+
+  const originalFrameCount = primary.frames.length
+  // The recloser side has nothing left to do once IT has gone terminal — hold its settled
+  // energization/state as the baseline for any EXTENSION ticks synthesized below (the substation
+  // relay's own multi-second reclose schedule can easily outlast the primary run's own horizon).
+  const settledPf = primary.frames[originalFrameCount - 1]
+
+  for (let i = 0; ; i++) {
+    const extending = i >= originalFrameCount
+    if (!extending && i >= primary.frames.length) break
+    if (extending) {
+      // Cap how far we extend so a pathological case (relay never resolving) can't run forever.
+      if (i - originalFrameCount >= MAX_UPSTREAM_EXTENSION_MS / dtMs) break
+      if (!upstreamController) break
+      if (upstreamTerminalAtMs != null && settledPf.tMs + (i - originalFrameCount) * dtMs >= upstreamTerminalAtMs + TERMINAL_TAIL_MS) break
+    }
+    const pf: SimulationFrame = extending
+      ? { ...settledPf, tMs: settledPf.tMs + (i - originalFrameCount + 1) * dtMs }
+      : primary.frames[i]
+    if (extending) primary.frames.push(pf)
     const posPa = restX[pa] + osc[pa].x
     const posPb = restX[pb] + osc[pb].x
     const pairSeparationFt = isPair
       ? mToFt(Math.max(Math.abs(posPb - posPa), D_MIN_M))
       : restPairSeparationFt
     const clearFt = pairSeparationFt - diameterFt
+    const contact = classifyClearance(clearFt)
+
+    // --- strike / advance the induced upstream fault (substation relay's own FSM) ---
+    if (upstreamFaultArmed && !upstreamController && pf.upstreamEnergized && contact === 'contact') {
+      upstreamController = new ProtectionController({
+        protectionEnabled: true,
+        faultCurrentA: inducedI,
+        settings: scenario.substationRelay,
+        faultStartMs: pf.tMs,
+      })
+      upstreamEventAtMs = pf.tMs
+    }
+    const upSnap = upstreamController?.step(pf.tMs, clearFt, CONTACT_THRESHOLD_FT, upstreamSlappedDuringDeadTime)
+    if (upSnap) {
+      if (upSnap.state === 'DEAD_TIME') {
+        if (upstreamPrevState !== 'DEAD_TIME') upstreamSlappedDuringDeadTime = false
+        if (contact === 'contact') upstreamSlappedDuringDeadTime = true
+      }
+      upstreamPrevState = upSnap.state
+      if (upSnap.terminal && upstreamTerminalAtMs === null) upstreamTerminalAtMs = pf.tMs
+      // The substation breaker now governs this span's energization — and, since it's upstream
+      // of the recloser too, the primary (downstream) frame at this same tick as well. Surface
+      // the induced fault as a fault (not load current) while the relay is actively timing it out.
+      primary.frames[i] = {
+        ...pf,
+        upstreamEnergized: upSnap.energized,
+        energized: pf.energized && upSnap.energized,
+        faultActive: pf.faultActive || upSnap.faultActive,
+        currentA: upSnap.faultActive ? inducedI : pf.currentA,
+      }
+    }
+    const pfEff = primary.frames[i]
+
+    const faultActive = upSnap ? upSnap.faultActive : pf.faultActive
+    const currentMag = upSnap?.faultActive ? inducedI : I
 
     const forceN: Record<Phase, number> = { A: 0, B: 0, C: 0 }
     let forcePerLen = 0
-    if (pf.faultActive && isPair) {
+    if (faultActive && isPair) {
       const sepM = Math.max(Math.abs(posPb - posPa), D_MIN_M)
-      forcePerLen = forcePerLengthNPerM(I, I, sepM)
+      forcePerLen = forcePerLengthNPerM(currentMag, currentMag, sepM)
       const fEff = EDU_FORCE_GAIN * forcePerLen * spanM
       forceN[pa] = fEff * Math.sign(posPa - posPb || -1)
       forceN[pb] = fEff * Math.sign(posPb - posPa || 1)
       const pc = unfaultedPhase(pa, pb)
       if (pc) {
         const posPc = restX[pc] + osc[pc].x
-        const fcPerLen = unfaultedForceNPerM(posPc, posPa, posPb, I)
+        const fcPerLen = unfaultedForceNPerM(posPc, posPa, posPb, currentMag)
         forceN[pc] = UNFAULTED_COUPLING * EDU_FORCE_GAIN * fcPerLen * spanM
       }
     }
 
-    // Upstream spans are energized by the substation breaker (pf.upstreamEnergized): they stay
-    // live and carry reduced load current once the recloser opens. They still carry the fault
-    // current while the fault is energized.
-    const upstreamCurrentA = pf.faultActive
-      ? I
-      : pf.energized
+    // Upstream spans are energized by the substation breaker: they stay live and carry reduced
+    // load current once the recloser opens, full load once everything is back to normal, and the
+    // induced-fault magnitude while that secondary fault is active.
+    const upstreamCurrentA = faultActive
+      ? currentMag
+      : pfEff.energized
         ? NOMINAL_LOAD_CURRENT_A
-        : pf.upstreamEnergized
+        : pfEff.upstreamEnergized
           ? REDUCED_LOAD_CURRENT_A
           : 0
 
     out.push({
-      tMs: pf.tMs,
-      state: pf.state,
-      energized: pf.upstreamEnergized,
-      upstreamEnergized: pf.upstreamEnergized,
-      faultActive: pf.faultActive,
+      tMs: pfEff.tMs,
+      state: upSnap ? upSnap.state : pfEff.state,
+      energized: pfEff.upstreamEnergized,
+      upstreamEnergized: pfEff.upstreamEnergized,
+      faultActive,
       currentA: upstreamCurrentA,
       dispAFt: mToFt(osc.A.x),
       dispBFt: mToFt(osc.B.x),
@@ -360,8 +447,8 @@ export function computeWitnessFrames(
       pairSeparationFt,
       clearanceFt: clearFt,
       forcePerLenNPerM: forcePerLen,
-      contact: classifyClearance(clearFt),
-      shot: pf.shot,
+      contact,
+      shot: upSnap ? upSnap.shot : pfEff.shot,
     })
 
     osc.A = stepOscillator(osc.A, forceN.A, mp, dtS)
@@ -369,7 +456,25 @@ export function computeWitnessFrames(
     osc.C = stepOscillator(osc.C, forceN.C, mp, dtS)
   }
 
+  primary.upstreamFaultEvent = buildUpstreamFaultEvent(upstreamController, upstreamEventAtMs)
+  primary.durationMs = primary.frames[primary.frames.length - 1]?.tMs ?? primary.durationMs
+
   return out
+}
+
+function buildUpstreamFaultEvent(
+  controller: ProtectionController | null,
+  atMs: number | null,
+): UpstreamFaultEvent | null {
+  if (!controller || atMs == null) return null
+  const events = controller.events
+  const firstTrip = events.find((e) => e.kind === 'trip')
+  const numTrips = events.filter((e) => e.kind === 'trip').length
+  return {
+    atMs,
+    tripTimeMs: firstTrip ? firstTrip.tMs - atMs : null,
+    finalState: resolveFinalState(controller, true, numTrips),
+  }
 }
 
 function resolveFinalState(

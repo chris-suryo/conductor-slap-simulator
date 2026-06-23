@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { runSimulation } from '@/simulation/runSimulation'
+import { computeWitnessFrames, runSimulation } from '@/simulation/runSimulation'
 import { relayDecisionMs, clearTimeMs } from '@/simulation/protection'
 import { shotConfig } from '@/simulation/recloserSequence'
-import { RELAY_PROCESSING_MS } from '@/simulation/constants'
+import { DEFAULT_INDUCED_FAULT_A, RELAY_PROCESSING_MS } from '@/simulation/constants'
 import {
   DEFAULT_SCENARIO,
   DEFAULT_SUBSTATION_RELAY,
@@ -123,5 +123,60 @@ describe('fault-sim — deterministic reclose outcome', () => {
       expect(r.numTrips).toBe(attempt)
       expect(r.finalState).toBe('RESTORED')
     }
+  })
+})
+
+describe('induced upstream fault — a slap on the still-energized upstream span', () => {
+  // A long, saggy adjacent span swings far enough on the post-clear rebound to clash while the
+  // substation breaker is still keeping it energized (split energization) — striking a new fault
+  // upstream of the recloser that the recloser itself can never see or clear.
+  const SLAPPING_SCENARIO = {
+    ...DEFAULT_SCENARIO,
+    faultCurrentA: 10000,
+    faultLocation: 'downstream' as const,
+    protectionEnabled: true,
+    sagFt: 10,
+  }
+  const WITNESS_SPAN_FT = 400
+
+  it('strikes a new fault that the substation relay clears on its own curve', () => {
+    const r = runSimulation(SLAPPING_SCENARIO)
+    computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+
+    expect(r.upstreamFaultEvent).not.toBeNull()
+    const expectedMs = relayDecisionMs(DEFAULT_INDUCED_FAULT_A, DEFAULT_SUBSTATION_RELAY, 'inverse')!
+    expect(r.upstreamFaultEvent!.tripTimeMs! / 1000).toBeCloseTo(expectedMs / 1000, 2)
+  })
+
+  it('de-energizes the whole feeder (no split) while the induced fault is being cleared', () => {
+    const r = runSimulation(SLAPPING_SCENARIO)
+    computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+
+    const atMs = r.upstreamFaultEvent!.atMs
+    const afterStrike = r.frames.filter((f) => f.tMs >= atMs)
+    expect(afterStrike.some((f) => !f.upstreamEnergized)).toBe(true)
+    // Once the substation breaker (the only source) is open, downstream can't stay live either.
+    expect(afterStrike.filter((f) => !f.upstreamEnergized).every((f) => !f.energized)).toBe(true)
+  })
+
+  it('extends the timeline so the relay\'s own reclose sequence isn\'t cut off mid-way', () => {
+    const r = runSimulation(SLAPPING_SCENARIO)
+    const witnessFrames = computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+
+    expect(witnessFrames.length).toBe(r.frames.length)
+    expect(r.durationMs).toBe(r.frames[r.frames.length - 1].tMs)
+    expect(['RESTORED', 'LOCKOUT']).toContain(r.upstreamFaultEvent!.finalState)
+  })
+
+  it('does nothing when the upstream span never actually clashes (default adjacent span)', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultCurrentA: 5000, faultLocation: 'downstream' })
+    computeWitnessFrames({ ...DEFAULT_SCENARIO, faultCurrentA: 5000, faultLocation: 'downstream' }, DEFAULT_SCENARIO.secondSpanLengthFt, r)
+    expect(r.upstreamFaultEvent).toBeNull()
+  })
+
+  it('is not armed for an upstream-located primary fault (relay is already engaged on it)', () => {
+    const r = runSimulation({ ...SLAPPING_SCENARIO, faultLocation: 'upstream' })
+    computeWitnessFrames({ ...SLAPPING_SCENARIO, faultLocation: 'upstream' }, WITNESS_SPAN_FT, r)
+    expect(r.upstreamFaultEvent).toBeNull()
   })
 })

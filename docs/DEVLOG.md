@@ -6,6 +6,48 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-22 — Session 4: Phase 6 — induced upstream fault from a witness-span slap
+
+**User report:** "when the recloser trips open after seeing the initial fault and upstream
+conductors slap, there should create another fault that will cause the upstream relay at the
+substation to operate and trip its breaker — but it does not currently." This is exactly the
+deferred Phase 6 item. Root cause: the upstream/witness spans (`computeWitnessFrames`) already
+mechanically swing and already detect `contact` (the same `classifyClearance` used for the
+primary span's own slap), but nothing read that — the substation relay's FSM was completely
+unaware of it, so a clash there was visual-only with no electrical consequence.
+
+**Fix (`runSimulation.ts`):** `computeWitnessFrames` now arms a second, independent
+`ProtectionController` for `scenario.substationRelay` the first time the witness span clashes
+WHILE still energized (split energization keeps it live after the recloser clears the original
+fault) — only for downstream-primary scenarios with the recloser actually engaged (an
+upstream-primary fault already has the relay engaged on the original event; not double-counted).
+The strike magnitude is `scenario.inducedFaultCurrentA` (previously a completely unwired UI
+control — `DEFAULT_INDUCED_FAULT_A = 6000` fallback in `constants.ts`). From the strike onward,
+this controller's snapshot OVERRIDES `primary.frames[i].upstreamEnergized`/`.energized`/
+`.faultActive`/`.currentA` too (mutated in place) — since the substation breaker is upstream of
+the recloser, tripping it de-energizes the WHOLE feeder, not just the upstream span. Added
+`SimulationResult.upstreamFaultEvent` (atMs / tripTimeMs / finalState) and a banner in
+`ResultsPanel`'s Outcome card when one occurs.
+
+**Timeline-extension fix:** the relay's own reclose schedule (dead times up to 10 s) can easily
+outlast the PRIMARY run's own horizon, since the strike typically happens well after the
+recloser has already settled — was leaving the new sequence cut off mid-way. `computeWitnessFrames`
+now synthesizes extra "held" frames (capped at `MAX_UPSTREAM_EXTENSION_MS = 13000`, repeating the
+recloser side's already-settled state) and appends them to BOTH `primary.frames` and the witness
+output, updating `primary.durationMs` so the playback scrubber can actually reach the resolution.
+
+**Verified live (5kA+ downstream, 400 ft / 10 ft sag adjacent span to force a real clash):** strike
+at 2.75 s → relay TOC trip in 249 ms → both Recloser AND Substation-breaker live cards correctly
+show 6 kA fault current while timing, then Open/— together (no split) once the breaker opens, then
+RESTORED together once it recloses successfully. Outcome banner renders correctly. **Caveat for
+the user:** at fully DEFAULT geometry (180 ft adjacent span, 5 ft sag) a plain 5 kA fault gets to
+2.14 ft minimum clearance — short of the 0.25 ft contact threshold, so it does NOT actually slap;
+the "Adjacent span length" and/or sag sliders need to be pushed up (or current higher) to
+reproduce the user's literal example. 5 new tests (`protectionCoordination.test.ts`) — 55 total,
+typecheck clean.
+
+---
+
 ## 2026-06-22 — Session 3: TCC legend overflow fix + reset-layout button
 
 **Bug report ("why can't I see the entire page anymore"):** user's screenshot showed the

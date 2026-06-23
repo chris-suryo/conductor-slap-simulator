@@ -198,6 +198,20 @@ export interface TimelineEvent {
   shot?: number
 }
 
+/**
+ * A conductor slap on the still-energized upstream span (after the recloser clears the original
+ * downstream fault, the source side keeps carrying load — see split energization) strikes a NEW
+ * fault upstream of the recloser, cleared by the substation relay on its own curve. Populated by
+ * `computeWitnessFrames` after the fact (null if no such slap occurred this run).
+ */
+export interface UpstreamFaultEvent {
+  /** Sim time (ms) the upstream span clashed while still energized, striking the new fault. */
+  atMs: number
+  /** Substation relay's trip decision time (ms) relative to the strike; null if it never trips. */
+  tripTimeMs: number | null
+  finalState: FinalState
+}
+
 export interface SimulationResult {
   frames: SimulationFrame[]
   events: TimelineEvent[]
@@ -215,4 +229,6 @@ export interface SimulationResult {
   /** Clearance at/under which a slap is registered (ft). */
   contactThresholdFt: number
   numTrips: number
+  /** A slap-induced upstream fault that the substation relay had to clear, if one occurred. */
+  upstreamFaultEvent: UpstreamFaultEvent | null
 }

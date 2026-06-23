@@ -45,6 +45,13 @@ export const UNFAULTED_PHASE_CURRENT_A = 200
 export const UNFAULTED_COUPLING = 0.3
 
 /**
+ * Fallback magnitude (A, primary) for a slap-induced upstream fault when the scenario doesn't set
+ * `inducedFaultCurrentA` explicitly — a fresh bolted fault near the source, not the (much smaller)
+ * load current the conductors were carrying when they clashed. Mirrors the fault-sim UI's default.
+ */
+export const DEFAULT_INDUCED_FAULT_A = 6000
+
+/**
  * Inverse-curve constants for `t = (TMS|TD) * (k / (M^alpha - 1) + c)`, with `M = I / pickup`.
  *
  * IEC 60255 curves use `c = 0`. The SEL "US" curves (U1–U5) map onto the SAME algebraic form

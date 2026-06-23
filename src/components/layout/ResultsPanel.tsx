@@ -142,6 +142,16 @@ export function ResultsPanel() {
       <Card>
         <CardHeader eyebrow="Result" title="Outcome" right={<Badge tone={final.tone}>{final.label}</Badge>} />
         <p className="mb-3 text-xs leading-relaxed text-fg-muted">{final.blurb}</p>
+        {result.upstreamFaultEvent && (
+          <p className="mb-3 rounded-lg border border-fault/40 bg-fault/10 px-3 py-2 text-xs leading-relaxed text-fault">
+            Induced upstream fault at {fmtMs(result.upstreamFaultEvent.atMs)} — the still-energized
+            upstream span clashed and struck a new fault the recloser can&apos;t see. Substation
+            relay{' '}
+            {result.upstreamFaultEvent.tripTimeMs == null
+              ? 'did not trip.'
+              : `tripped in ${fmtMs(result.upstreamFaultEvent.tripTimeMs)} (${result.upstreamFaultEvent.finalState.toLowerCase()}).`}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Stat
             label="Relay trip"
