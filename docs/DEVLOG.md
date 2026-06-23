@@ -6,6 +6,24 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 9: TCC chart maximize/restore toggle
+
+**User request:** be able to maximize just the TCC chart (not the other two) and restore it to
+its original grid size, to read operating times more precisely while hovering the cursor across
+the curves. `TccChart.tsx`: added local `expanded` state; the chart's Recharts tree is now built
+once (`chart` const) and reused both in the normal grid-sized card and in a maximized view. A new
+maximize/minimize icon button (`lucide-react` `Maximize2`/`Minimize2`, matching the existing
+"expand scene" button's style) sits in the card header next to the "Disabled" badge. When
+expanded, the same `Card` renders inside a `fixed inset-0 z-50` dark backdrop, sized
+`80vh × min(92vw, 5xl)`; clicking the backdrop, clicking the button again, or pressing Escape
+(window keydown listener, only attached while expanded) all restore it. Kept local to this one
+component (no layout-store changes) since only the TCC chart needed it — Force/Displacement
+charts are untouched. Verified live: maximize opens a large centered overlay with both curves
+clearly readable, restore button and Escape both close it back to the original 3-chart grid, no
+console errors. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 8: light background on the 3 chart cards
 
 **User request:** change the background of all 3 charts (Magnetic force, Conductor clearance,

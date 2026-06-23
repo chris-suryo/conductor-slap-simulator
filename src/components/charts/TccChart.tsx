@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useScenarioStore } from '@/state/useScenarioStore'
@@ -71,6 +72,7 @@ export function TccChart() {
   const relay = scenario.substationRelay
   const I = scenario.faultCurrentA
   const t = useChartTheme()
+  const [expanded, setExpanded] = useState(false)
 
   const data = useMemo(() => {
     const pts: { current: number; recloser: number | null; relay: number | null }[] = []
@@ -84,104 +86,149 @@ export function TccChart() {
   const recloserOp = useMemo(() => firstOpMs(recloser, I), [recloser, I])
   const relayOp = useMemo(() => firstOpMs(relay, I), [relay, I])
 
-  return (
-    <Card className="force-light flex flex-col">
+  // Esc restores the chart from the maximized overlay.
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [expanded])
+
+  const toggleExpanded = useCallback(() => setExpanded((v) => !v), [])
+
+  const chart = (
+    <ResponsiveContainer>
+      <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={t.gridStroke} />
+        <XAxis
+          dataKey="current"
+          type="number"
+          scale="log"
+          domain={[X_AXIS_MIN_A, 12000]}
+          allowDataOverflow
+          ticks={X_TICKS}
+          tick={t.axisTick}
+          tickFormatter={fmtAmps}
+          axisLine={{ stroke: t.axisLine }}
+          tickLine={false}
+        />
+        <YAxis
+          type="number"
+          scale="log"
+          domain={[Y_AXIS_MIN_MS, Y_AXIS_MAX_MS]}
+          allowDataOverflow
+          ticks={Y_TICKS}
+          tick={t.axisTick}
+          width={42}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={fmtTime}
+        />
+        <Tooltip
+          contentStyle={t.tooltip}
+          cursor={{ stroke: t.axisLine }}
+          labelFormatter={(v) => `${Math.round(Number(v))} A`}
+          formatter={(v: number, name: string) => [
+            fmtTime(v),
+            name === 'recloser' ? 'Recloser' : 'Substation relay',
+          ]}
+        />
+        <ReferenceLine
+          x={I}
+          stroke={COLORS.fault}
+          strokeDasharray="4 3"
+          label={{ value: 'fault', fontSize: 9, fill: COLORS.fault, position: 'top' }}
+        />
+        <Line
+          type="monotone"
+          dataKey="recloser"
+          stroke={RECLOSER_COLOR}
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+          connectNulls
+        />
+        <Line
+          type="monotone"
+          dataKey="relay"
+          stroke={RELAY_COLOR}
+          strokeWidth={2}
+          strokeDasharray="5 3"
+          dot={false}
+          isAnimationActive={false}
+          connectNulls
+        />
+        {recloserOp != null && (
+          <ReferenceDot
+            x={I}
+            y={recloserOp}
+            r={4}
+            fill={RECLOSER_COLOR}
+            stroke={t.surface}
+            strokeWidth={2}
+            label={{ value: fmtTime(recloserOp), fontSize: 9, fill: RECLOSER_COLOR, position: 'right' }}
+          />
+        )}
+        {relayOp != null && (
+          <ReferenceDot
+            x={I}
+            y={relayOp}
+            r={4}
+            fill={RELAY_COLOR}
+            stroke={t.surface}
+            strokeWidth={2}
+            label={{ value: fmtTime(relayOp), fontSize: 9, fill: RELAY_COLOR, position: 'left' }}
+          />
+        )}
+      </LineChart>
+    </ResponsiveContainer>
+  )
+
+  const maximizeButton = (
+    <button
+      type="button"
+      onClick={toggleExpanded}
+      title={expanded ? 'Restore' : 'Maximize'}
+      aria-label={expanded ? 'Restore chart size' : 'Maximize chart'}
+      aria-pressed={expanded}
+      className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-edge/60 text-fg-muted transition-colors hover:border-brand hover:text-fg"
+    >
+      {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+    </button>
+  )
+
+  const card = (
+    <Card className="force-light flex h-full flex-col">
       <CardHeader
         eyebrow="Protection"
         title="Time–current curves (TCC)"
-        right={!scenario.protectionEnabled ? <Badge tone="deenergized">Disabled</Badge> : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            {!scenario.protectionEnabled && <Badge tone="deenergized">Disabled</Badge>}
+            {maximizeButton}
+          </div>
+        }
       />
-      <div className="h-[clamp(150px,17vh,196px)] w-full">
-        <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={t.gridStroke} />
-            <XAxis
-              dataKey="current"
-              type="number"
-              scale="log"
-              domain={[X_AXIS_MIN_A, 12000]}
-              allowDataOverflow
-              ticks={X_TICKS}
-              tick={t.axisTick}
-              tickFormatter={fmtAmps}
-              axisLine={{ stroke: t.axisLine }}
-              tickLine={false}
-            />
-            <YAxis
-              type="number"
-              scale="log"
-              domain={[Y_AXIS_MIN_MS, Y_AXIS_MAX_MS]}
-              allowDataOverflow
-              ticks={Y_TICKS}
-              tick={t.axisTick}
-              width={42}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={fmtTime}
-            />
-            <Tooltip
-              contentStyle={t.tooltip}
-              cursor={{ stroke: t.axisLine }}
-              labelFormatter={(v) => `${Math.round(Number(v))} A`}
-              formatter={(v: number, name: string) => [
-                fmtTime(v),
-                name === 'recloser' ? 'Recloser' : 'Substation relay',
-              ]}
-            />
-            <ReferenceLine
-              x={I}
-              stroke={COLORS.fault}
-              strokeDasharray="4 3"
-              label={{ value: 'fault', fontSize: 9, fill: COLORS.fault, position: 'top' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="recloser"
-              stroke={RECLOSER_COLOR}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="relay"
-              stroke={RELAY_COLOR}
-              strokeWidth={2}
-              strokeDasharray="5 3"
-              dot={false}
-              isAnimationActive={false}
-              connectNulls
-            />
-            {recloserOp != null && (
-              <ReferenceDot
-                x={I}
-                y={recloserOp}
-                r={4}
-                fill={RECLOSER_COLOR}
-                stroke={t.surface}
-                strokeWidth={2}
-                label={{ value: fmtTime(recloserOp), fontSize: 9, fill: RECLOSER_COLOR, position: 'right' }}
-              />
-            )}
-            {relayOp != null && (
-              <ReferenceDot
-                x={I}
-                y={relayOp}
-                r={4}
-                fill={RELAY_COLOR}
-                stroke={t.surface}
-                strokeWidth={2}
-                label={{ value: fmtTime(relayOp), fontSize: 9, fill: RELAY_COLOR, position: 'left' }}
-              />
-            )}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <div className={expanded ? 'min-h-0 flex-1' : 'h-[clamp(150px,17vh,196px)] w-full'}>{chart}</div>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />
       </div>
     </Card>
+  )
+
+  if (!expanded) return card
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+      onClick={toggleExpanded}
+    >
+      <div className="h-[80vh] w-[92vw] max-w-5xl" onClick={(e) => e.stopPropagation()}>
+        {card}
+      </div>
+    </div>
   )
 }
