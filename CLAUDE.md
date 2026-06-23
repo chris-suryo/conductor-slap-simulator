@@ -151,10 +151,18 @@ without clicking, use the dev `window.__store`, e.g.
 
 ## What's done vs. open
 
-- **Done:** AB/BC/AC faults, full relay+recloser sequence, two-span 3D scene on a street
-  (road + receding feeder + skyline + ground shadows + sky), resizable panels + expand-scene
-  toggle, charts, presentation mode, dark/light theming, IBM Plex typography, APC branding
-  (recreated logo).
+- **Done:** AB/BC/AC faults, two-device protection (downstream G&W recloser + upstream substation
+  relay) with SEL US curves and fault-location coordination, full reclose sequence, dual TCC chart,
+  fault-simulation UX (magnitudes, location, reclose outcome, Run/Stop), **three-span 3D scene**
+  (source "S" marker → G&W recloser + cabinet at P2 → faulted span 3 with an L-L arc at its remote
+  end) on a street (road + receding feeder + skyline + ground shadows + sky), resizable panels +
+  expand-scene toggle, charts, presentation mode, dark/light theming, IBM Plex typography, APC
+  branding (recreated logo). Split energization (upstream stays live at reduced load while only
+  the recloser is open) + split Live-state UI; small magnetic coupling on the unfaulted phase
+  during an L-L fault. **Protection settings panel shows both devices side by side** (CTR, pickup,
+  curve, time dial); the "Protection enabled" toggle is **recloser-only** — disabling it routes a
+  downstream fault to the substation relay's own curve, which de-energizes the whole feeder (no
+  upstream/downstream split), matching how a real backup relay behaves.
 - **Stubbed (typed, UI-disabled):** AG/BG/CG ground faults, ABC three-phase
   (`faultGeometry()` returns `isPair: false` for these — they need a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video

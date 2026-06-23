@@ -9,9 +9,10 @@ import { DEFAULT_PROTECTION } from '@/state/presets'
 
 describe('recloserSequence — pure helpers', () => {
   it('resolves shot configuration from settings', () => {
+    // Default recloser: first operation rides the TOC curve; open interval = 12 cycles (200 ms).
     expect(shotConfig(DEFAULT_PROTECTION, 0)).toEqual({
-      curveMode: 'instantaneous',
-      recloseDelayMs: 1000,
+      curveMode: 'inverse',
+      recloseDelayMs: 200,
     })
     expect(shotConfig(DEFAULT_PROTECTION, 1).curveMode).toBe('inverse')
   })

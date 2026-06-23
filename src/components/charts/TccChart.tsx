@@ -13,18 +13,18 @@ import {
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useScenarioStore } from '@/state/useScenarioStore'
-import { inverseTripTimeMs } from '@/simulation/protection'
-import { RELAY_PROCESSING_MS } from '@/simulation/constants'
+import { inverseTripTimeMs, relayDecisionMs } from '@/simulation/protection'
+import { shotConfig } from '@/simulation/recloserSequence'
+import type { ProtectionSettings } from '@/simulation/types'
 import { COLORS } from '@/utils/labels'
 import { useChartTheme } from './useChartData'
 
 /*
  * FUTURE UPGRADE (flagged): this is the prime candidate for swapping Recharts → visx/D3 or
  * uPlot. A publication-grade TCC needs true log-log MINOR gridlines (1-2-3-5 per decade),
- * multiple stacked device curves (phase + ground + downstream coordination), and shaded
- * coordination margins — all of which Recharts fights us on. The time-series charts are fine
- * on Recharts; only this one would materially benefit. Keep it behind this component boundary
- * so a future swap stays local.
+ * device instantaneous-element cutoffs, downstream coordination, and shaded coordination
+ * margins — all of which Recharts fights us on. Keep it behind this component boundary so a
+ * future swap stays local.
  */
 
 const fmtTime = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)}s` : `${Math.round(ms)}ms`)
@@ -33,42 +33,64 @@ const fmtAmps = (a: number) => (a >= 1000 ? `${+(a / 1000).toFixed(1)}k` : `${Ma
 const X_TICKS = [1000, 2000, 3000, 5000, 7000, 10000]
 const Y_TICKS = [100, 1000, 10000]
 
+// Distinct, theme-constant device colors (orange recloser vs cyan relay).
+const RECLOSER_COLOR = COLORS.brand
+const RELAY_COLOR = COLORS.energized
+
+/** Time-overcurrent (inverse) clearing time at a current, or null below pickup. */
+function tocMs(device: ProtectionSettings, current: number): number | null {
+  const inv = inverseTripTimeMs(current, device.phasePickupA, device.curveType, device.timeMultiplier)
+  return Number.isFinite(inv) ? Math.min(inv + device.breakerOpenTimeMs, 40000) : null
+}
+
+/** The device's actual FIRST-operation clearing time at the fault current (TOC or fast element). */
+function firstOpMs(device: ProtectionSettings, faultA: number): number | null {
+  if (faultA < device.phasePickupA) return null
+  const decision = relayDecisionMs(faultA, device, shotConfig(device, 0).curveMode)
+  return decision == null ? null : decision + device.breakerOpenTimeMs
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+      <span className="text-[11px] text-fg-muted">{label}</span>
+    </span>
+  )
+}
+
 export function TccChart() {
   const scenario = useScenarioStore((s) => s.scenario)
-  const p = scenario.protection
+  const recloser = scenario.protection
+  const relay = scenario.substationRelay
   const I = scenario.faultCurrentA
   const t = useChartTheme()
 
   const data = useMemo(() => {
-    const pts: { current: number; ms: number }[] = []
-    const start = Math.max(p.phasePickupA * 1.3, 100)
-    for (let i = start; i <= 12000; i *= 1.05) {
-      let ms: number
-      if (i >= p.phaseInstantaneousPickupA) ms = RELAY_PROCESSING_MS + p.breakerOpenTimeMs
-      else {
-        const inv = inverseTripTimeMs(i, p.phasePickupA, p.curveType, p.timeMultiplier)
-        if (!Number.isFinite(inv)) continue
-        ms = inv + p.breakerOpenTimeMs
-      }
-      pts.push({ current: i, ms: Math.min(ms, 40000) })
+    const pts: { current: number; recloser: number | null; relay: number | null }[] = []
+    const lowPickup = Math.max(Math.min(recloser.phasePickupA, relay.phasePickupA), 100)
+    for (let i = lowPickup * 1.02; i <= 12000; i *= 1.04) {
+      pts.push({ current: i, recloser: tocMs(recloser, i), relay: tocMs(relay, i) })
     }
     return pts
-  }, [p.phasePickupA, p.phaseInstantaneousPickupA, p.curveType, p.timeMultiplier, p.breakerOpenTimeMs])
+  }, [recloser, relay])
 
-  const opMs = useMemo(() => {
-    if (I < p.phasePickupA) return null
-    if (I >= p.phaseInstantaneousPickupA) return RELAY_PROCESSING_MS + p.breakerOpenTimeMs
-    const inv = inverseTripTimeMs(I, p.phasePickupA, p.curveType, p.timeMultiplier)
-    return Number.isFinite(inv) ? inv + p.breakerOpenTimeMs : null
-  }, [I, p])
+  const recloserOp = useMemo(() => firstOpMs(recloser, I), [recloser, I])
+  const relayOp = useMemo(() => firstOpMs(relay, I), [relay, I])
+
+  const xLow = Math.max(Math.min(recloser.phasePickupA, relay.phasePickupA), 100)
 
   return (
     <Card className="flex flex-col">
       <CardHeader
         eyebrow="Protection"
-        title="Time–current curve (TCC)"
+        title="Time–current curves (TCC)"
         right={!scenario.protectionEnabled ? <Badge tone="deenergized">Disabled</Badge> : undefined}
       />
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+        <LegendDot color={RECLOSER_COLOR} label="Recloser" />
+        <LegendDot color={RELAY_COLOR} label="Substation relay" />
+      </div>
       <div className="h-[clamp(150px,17vh,196px)] w-full">
         <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
@@ -77,7 +99,7 @@ export function TccChart() {
               dataKey="current"
               type="number"
               scale="log"
-              domain={[Math.max(p.phasePickupA, 100), 12000]}
+              domain={[xLow, 12000]}
               allowDataOverflow
               ticks={X_TICKS}
               tick={t.axisTick}
@@ -101,43 +123,64 @@ export function TccChart() {
               contentStyle={t.tooltip}
               cursor={{ stroke: t.axisLine }}
               labelFormatter={(v) => `${Math.round(Number(v))} A`}
-              formatter={(v: number) => [fmtTime(v), 'Clear']}
+              formatter={(v: number, name: string) => [
+                fmtTime(v),
+                name === 'recloser' ? 'Recloser' : 'Substation relay',
+              ]}
             />
             <ReferenceLine
               x={I}
-              stroke={COLORS.energized}
+              stroke={COLORS.fault}
               strokeDasharray="4 3"
-              label={{ value: 'fault', fontSize: 9, fill: COLORS.energized, position: 'top' }}
+              label={{ value: 'fault', fontSize: 9, fill: COLORS.fault, position: 'top' }}
             />
             <Line
               type="monotone"
-              dataKey="ms"
-              stroke={COLORS.caution}
+              dataKey="recloser"
+              stroke={RECLOSER_COLOR}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
+              connectNulls
             />
-            {opMs != null && (
+            <Line
+              type="monotone"
+              dataKey="relay"
+              stroke={RELAY_COLOR}
+              strokeWidth={2}
+              strokeDasharray="5 3"
+              dot={false}
+              isAnimationActive={false}
+              connectNulls
+            />
+            {recloserOp != null && (
               <ReferenceDot
                 x={I}
-                y={opMs}
+                y={recloserOp}
                 r={4}
-                fill={COLORS.energized}
+                fill={RECLOSER_COLOR}
                 stroke={t.surface}
                 strokeWidth={2}
-                label={{
-                  value: `trip ${fmtTime(opMs)}`,
-                  fontSize: 9,
-                  fill: COLORS.energized,
-                  position: 'right',
-                }}
+                label={{ value: fmtTime(recloserOp), fontSize: 9, fill: RECLOSER_COLOR, position: 'right' }}
+              />
+            )}
+            {relayOp != null && (
+              <ReferenceDot
+                x={I}
+                y={relayOp}
+                r={4}
+                fill={RELAY_COLOR}
+                stroke={t.surface}
+                strokeWidth={2}
+                label={{ value: fmtTime(relayOp), fontSize: 9, fill: RELAY_COLOR, position: 'left' }}
               />
             )}
           </LineChart>
         </ResponsiveContainer>
       </div>
       <p className="mt-1 text-[10px] text-fg-faint">
-        Total clearing time vs fault current. Dot = this fault's operating point.
+        Clearing time vs fault current for both devices. Dots = this fault's operating time on each
+        curve — the recloser trips first, so the relay resets (backup).
       </p>
     </Card>
   )

@@ -24,9 +24,13 @@ import {
   D_MIN_M,
   EDU_FORCE_GAIN,
   FAULT_START_MS,
+  NOMINAL_LOAD_CURRENT_A,
+  REDUCED_LOAD_CURRENT_A,
   SIM_DT_MS,
   SIM_HORIZON_MS,
   TERMINAL_TAIL_MS,
+  UNFAULTED_COUPLING,
+  UNFAULTED_PHASE_CURRENT_A,
 } from './constants'
 import { ftToM, mToFt } from './units'
 import { getConductor } from './conductorCatalog'
@@ -62,6 +66,30 @@ export function faultGeometry(ft: FaultType): FaultGeometry {
   }
 }
 
+/** The phase not involved in a line-to-line fault (null for non-pair faults). */
+function unfaultedPhase(pa: Phase, pb: Phase): Phase | null {
+  if (pa === pb) return null
+  return (['A', 'B', 'C'] as Phase[]).find((p) => p !== pa && p !== pb) ?? null
+}
+
+/**
+ * Net lateral force per length (N/m) on the UNFAULTED conductor from the two faulted phases.
+ * The unfaulted phase carries a small load current and is pushed away from each high-current
+ * faulted conductor (force scales with I_load * I_fault, ~1/distance). The contributions ADD for
+ * an OUTER unfaulted phase (both pushes point outward) and CANCEL for a CENTERED one (an A–C
+ * fault, where the disturbance is symmetric about it) — so a middle phase barely moves. This is
+ * symmetric for mirror faults (A–B and B–C behave alike). The true coherent magnitude depends on
+ * the load/fault phase angle, which the steady-RMS model can't resolve, so it is de-rated by
+ * UNFAULTED_COUPLING.
+ */
+function unfaultedForceNPerM(posC: number, posA: number, posB: number, faultA: number): number {
+  const dA = Math.max(Math.abs(posC - posA), D_MIN_M)
+  const dB = Math.max(Math.abs(posC - posB), D_MIN_M)
+  const fA = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, faultA, dA)
+  const fB = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, faultA, dB)
+  return fA * Math.sign(posC - posA || 1) + fB * Math.sign(posC - posB || 1)
+}
+
 /** Optional tuning overrides — used by the calibration harness and tests. */
 export interface SimTuning {
   forceGain?: number
@@ -91,12 +119,25 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
   const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
   const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
 
+  // Pick the operating device by fault position on the radial feeder AND whether the recloser
+  // controller is actually in service. `protectionEnabled` is the RECLOSER's enable — it has no
+  // effect on the substation relay, which is a real backup device and is always in service:
+  //  - downstream fault, recloser enabled  -> the recloser operates (it is set faster); the
+  //    substation relay backs it up and resets if the recloser clears first.
+  //  - downstream fault, recloser DISABLED -> no current is cleared by the recloser, so the fault
+  //    rides through to the substation relay, which clears it on its own pickup/curve/TD.
+  //  - upstream fault                      -> no current reaches the recloser at all, regardless
+  //    of its enable state; only the substation relay ever sees and clears it.
+  const recloserEngaged = scenario.faultLocation === 'downstream' && scenario.protectionEnabled
+  const operatingDevice = recloserEngaged ? scenario.protection : scenario.substationRelay
   const controller = new ProtectionController({
-    protectionEnabled: scenario.protectionEnabled,
+    protectionEnabled: true,
     faultCurrentA: I,
-    settings: scenario.protection,
+    settings: operatingDevice,
     faultStartMs: FAULT_START_MS,
     noProtectionClearMs: noProtClearMs,
+    faultPersists: scenario.faultPersists,
+    restoreOnReclose: scenario.restoreOnReclose,
   })
 
   const osc: Record<Phase, OscillatorState> = {
@@ -145,7 +186,22 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
       // Antiparallel fault currents repel: push each conductor away from the other.
       forceN[pa] = fEff * Math.sign(posPaAbs - posPbAbs || -1)
       forceN[pb] = fEff * Math.sign(posPbAbs - posPaAbs || 1)
+      // Unfaulted phase: a much smaller force (load current in the faulted field).
+      const pc = unfaultedPhase(pa, pb)
+      if (pc) {
+        const posPcAbs = restX[pc] + osc[pc].x
+        const fcPerLen = unfaultedForceNPerM(posPcAbs, posPaAbs, posPbAbs, I)
+        forceN[pc] = UNFAULTED_COUPLING * forceGain * fcPerLen * spanM
+      }
     }
+
+    // --- upstream (substation-side) energization ---
+    // With the recloser engaged, the substation breaker stays closed, so the section from it to
+    // the source side of the recloser remains energized (carrying reduced load) even while the
+    // recloser is open — a split. Otherwise the SUBSTATION RELAY is the operating device, and its
+    // breaker is the only thing that can clear the fault, so the whole line de-energizes together
+    // (recloser disabled, or an upstream fault).
+    const upstreamEnergized = recloserEngaged ? true : snap.energized
 
     // --- record frame at tMs ---
     const dispAFt = mToFt(osc.A.x)
@@ -155,6 +211,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
       tMs,
       state: snap.state,
       energized: snap.energized,
+      upstreamEnergized,
       faultActive: snap.faultActive,
       currentA: snap.faultActive ? I : 0,
       dispAFt,
@@ -271,14 +328,32 @@ export function computeWitnessFrames(
       const fEff = EDU_FORCE_GAIN * forcePerLen * spanM
       forceN[pa] = fEff * Math.sign(posPa - posPb || -1)
       forceN[pb] = fEff * Math.sign(posPb - posPa || 1)
+      const pc = unfaultedPhase(pa, pb)
+      if (pc) {
+        const posPc = restX[pc] + osc[pc].x
+        const fcPerLen = unfaultedForceNPerM(posPc, posPa, posPb, I)
+        forceN[pc] = UNFAULTED_COUPLING * EDU_FORCE_GAIN * fcPerLen * spanM
+      }
     }
+
+    // Upstream spans are energized by the substation breaker (pf.upstreamEnergized): they stay
+    // live and carry reduced load current once the recloser opens. They still carry the fault
+    // current while the fault is energized.
+    const upstreamCurrentA = pf.faultActive
+      ? I
+      : pf.energized
+        ? NOMINAL_LOAD_CURRENT_A
+        : pf.upstreamEnergized
+          ? REDUCED_LOAD_CURRENT_A
+          : 0
 
     out.push({
       tMs: pf.tMs,
       state: pf.state,
-      energized: pf.energized,
+      energized: pf.upstreamEnergized,
+      upstreamEnergized: pf.upstreamEnergized,
       faultActive: pf.faultActive,
-      currentA: pf.currentA,
+      currentA: upstreamCurrentA,
       dispAFt: mToFt(osc.A.x),
       dispBFt: mToFt(osc.B.x),
       dispCFt: mToFt(osc.C.x),

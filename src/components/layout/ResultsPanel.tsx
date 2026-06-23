@@ -3,6 +3,7 @@ import { useScenarioStore } from '@/state/useScenarioStore'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { frameAtMs } from '@/utils/frames'
+import { NOMINAL_LOAD_CURRENT_A, REDUCED_LOAD_CURRENT_A } from '@/simulation/constants'
 import {
   CONTACT_META,
   FINAL_META,
@@ -30,7 +31,46 @@ function Stat({
   )
 }
 
-/** Live readout that follows the playback cursor. */
+/** A closed/open device-state cell with an indicator dot. */
+function BreakerStateCell({ closed, openLabel = 'Open' }: { closed: boolean; openLabel?: string }) {
+  return (
+    <div className="panel-muted px-3 py-2">
+      <div className="label-eyebrow mb-1">State</div>
+      <div className="flex items-center gap-1.5 text-sm font-semibold">
+        <span
+          className={cn(
+            'h-2 w-2 rounded-full',
+            closed ? 'bg-energized shadow-glow shadow-energized' : 'bg-deenergized',
+          )}
+        />
+        <span className={closed ? 'text-energized' : 'text-fg-muted'}>{closed ? 'Closed' : openLabel}</span>
+      </div>
+    </div>
+  )
+}
+
+/** Current flowing through a device: fault (red), load (with suffix), or none. */
+function DeviceCurrentCell({ amps, fault, loadSuffix = 'load' }: { amps: number; fault: boolean; loadSuffix?: string }) {
+  return (
+    <div className="panel-muted px-3 py-2">
+      <div className="label-eyebrow mb-1">Current</div>
+      <div className="stat-value text-sm font-semibold">
+        {amps <= 0 ? (
+          <span className="text-fg-muted">—</span>
+        ) : fault ? (
+          <span className="text-fault">{fmtAmps(amps)}</span>
+        ) : (
+          <span className="text-fg">
+            {fmtAmps(amps)}
+            <span className="ml-1 text-[10px] font-normal text-fg-faint">{loadSuffix}</span>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Two live device readouts (recloser + substation breaker) that follow the playback cursor. */
 function LiveStatus() {
   const cursorMs = useScenarioStore((s) => s.cursorMs)
   const result = useScenarioStore((s) => s.result)
@@ -38,38 +78,55 @@ function LiveStatus() {
   const meta = STATE_META[frame.state]
   const contact = CONTACT_META[frame.contact]
 
+  const fault = frame.faultActive
+  const recloserClosed = frame.energized
+  const subClosed = frame.upstreamEnergized
+  // The fault is downstream of the recloser, so both devices carry the fault current while it is
+  // energized. With no fault: the recloser passes the downstream load while closed; the substation
+  // breaker passes full load when the recloser is closed and reduced load once the recloser opens.
+  const recloserCurrentA = fault ? frame.currentA : recloserClosed ? NOMINAL_LOAD_CURRENT_A : 0
+  const subCurrentA = fault
+    ? frame.currentA
+    : subClosed
+      ? recloserClosed
+        ? NOMINAL_LOAD_CURRENT_A
+        : REDUCED_LOAD_CURRENT_A
+      : 0
+
   return (
-    <Card>
-      <CardHeader eyebrow="Live state" title="Now playing" right={<Badge tone={meta.tone}>{meta.label}</Badge>} />
-      <div className="grid grid-cols-3 gap-2">
-        <div className="panel-muted px-3 py-2">
-          <div className="label-eyebrow mb-1">Line</div>
-          <div className="flex items-center gap-1.5 text-sm font-semibold">
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full',
-                frame.energized ? 'bg-energized shadow-glow shadow-energized' : 'bg-deenergized',
-              )}
-            />
-            <span className={frame.energized ? 'text-energized' : 'text-fg-muted'}>
-              {frame.energized ? 'Energized' : 'Open'}
-            </span>
+    <>
+      {/* Recloser (downstream device) */}
+      <Card>
+        <CardHeader
+          eyebrow="Live · downstream"
+          title="Recloser"
+          right={<Badge tone={meta.tone}>{meta.label}</Badge>}
+        />
+        <div className="grid grid-cols-3 gap-2">
+          <BreakerStateCell closed={recloserClosed} />
+          <DeviceCurrentCell amps={recloserCurrentA} fault={fault} />
+          <div className="panel-muted px-3 py-2">
+            <div className="label-eyebrow mb-1">Clearance</div>
+            <div className="stat-value text-sm font-semibold" style={{ color: contact.color }}>
+              {fmtFt(Math.max(frame.clearanceFt, 0))}
+            </div>
           </div>
         </div>
-        <div className="panel-muted px-3 py-2">
-          <div className="label-eyebrow mb-1">Current</div>
-          <div className="stat-value text-sm font-semibold text-fg">
-            {frame.faultActive ? fmtAmps(frame.currentA) : '—'}
-          </div>
+      </Card>
+
+      {/* Substation feeder breaker (upstream device) */}
+      <Card>
+        <CardHeader
+          eyebrow="Live · upstream"
+          title="Substation breaker"
+          right={<Badge tone={subClosed ? 'energized' : 'deenergized'}>{subClosed ? 'Closed' : 'Open'}</Badge>}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <BreakerStateCell closed={subClosed} />
+          <DeviceCurrentCell amps={subCurrentA} fault={fault} loadSuffix="src load" />
         </div>
-        <div className="panel-muted px-3 py-2">
-          <div className="label-eyebrow mb-1">Clearance</div>
-          <div className="stat-value text-sm font-semibold" style={{ color: contact.color }}>
-            {fmtFt(Math.max(frame.clearanceFt, 0))}
-          </div>
-        </div>
-      </div>
-    </Card>
+      </Card>
+    </>
   )
 }
 

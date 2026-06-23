@@ -29,6 +29,7 @@ interface ScenarioState {
   // Scenario edits (each re-runs the simulation and replays from the start)
   patchScenario: (patch: Partial<Scenario>) => void
   patchProtection: (patch: Partial<ProtectionSettings>) => void
+  patchSubstationRelay: (patch: Partial<ProtectionSettings>) => void
   setFaultType: (faultType: FaultType) => void
   setProtectionEnabled: (enabled: boolean) => void
   applyPreset: (id: string) => void
@@ -39,6 +40,8 @@ interface ScenarioState {
   pause: () => void
   togglePlay: () => void
   restart: () => void
+  /** Stop the simulation and reset to the pre-fault energized (load-current) state. */
+  stop: () => void
   seek: (ms: number) => void
   setSpeed: (speed: number) => void
   toggleLoop: () => void
@@ -71,6 +74,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => {
       const s = get().scenario
       rerun({ ...s, protection: { ...s.protection, ...patch } }, null)
     },
+    patchSubstationRelay: (patch) => {
+      const s = get().scenario
+      rerun({ ...s, substationRelay: { ...s.substationRelay, ...patch } }, null)
+    },
     setFaultType: (faultType) => rerun({ ...get().scenario, faultType }, null),
     setProtectionEnabled: (enabled) =>
       rerun({ ...get().scenario, protectionEnabled: enabled }, enabled ? null : 'no-protection'),
@@ -90,6 +97,9 @@ export const useScenarioStore = create<ScenarioState>((set, get) => {
     pause: () => set({ playing: false }),
     togglePlay: () => (get().playing ? get().pause() : get().play()),
     restart: () => set({ cursorMs: 0, playing: true }),
+    // Stop and reset to the pre-fault frame (t=0): the line is energized and carrying load
+    // current, no fault yet — so starting again replays cleanly from the load state.
+    stop: () => set({ cursorMs: 0, playing: false }),
     seek: (ms) => set((st) => ({ cursorMs: clamp(ms, 0, st.result.durationMs), playing: false })),
     setSpeed: (speed) => set({ speed }),
     toggleLoop: () => set((st) => ({ loop: !st.loop })),

@@ -16,12 +16,53 @@ export const GRAVITY = 9.81
 
 export const LINE_FREQ_HZ = 60
 
-/** IEC 60255-style inverse-curve constants: t = TMS * (k / (M^alpha - 1) + c). */
+/**
+ * Nominal feeder load current (A) shown in the live readout when the line is energized but not
+ * faulting — so the demo reads as a live circuit carrying load rather than a blank/dash.
+ * Educational placeholder, not a measured value.
+ */
+export const NOMINAL_LOAD_CURRENT_A = 200
+
+/**
+ * Reduced feeder load current (A) carried by the upstream section (through the substation breaker)
+ * once the recloser has opened and shed the downstream load. Educational placeholder.
+ */
+export const REDUCED_LOAD_CURRENT_A = 100
+
+/**
+ * Load current (A) assumed in the UNFAULTED phase during a line-to-line fault. It sets the much
+ * smaller magnetic interaction between that phase and the two faulted conductors (force scales
+ * with I_load * I_fault, not I_fault^2).
+ */
+export const UNFAULTED_PHASE_CURRENT_A = 200
+
+/**
+ * De-rating factor (0..1) on the unfaulted-phase force. The coherent (time-averaged) force depends
+ * on the phase angle between the load current and the fault current (~cos phi), which the steady-
+ * RMS model can't resolve — so the in-phase estimate is scaled down. Pure educational knob: raise
+ * it to make the unfaulted-phase sway more visible, lower it to mute it.
+ */
+export const UNFAULTED_COUPLING = 0.3
+
+/**
+ * Inverse-curve constants for `t = (TMS|TD) * (k / (M^alpha - 1) + c)`, with `M = I / pickup`.
+ *
+ * IEC 60255 curves use `c = 0`. The SEL "US" curves (U1–U5) map onto the SAME algebraic form
+ * with `c = A`, `k = B`, `alpha = P` from SEL's operate-time equation `t = TD*(A + B/(M^P − 1))`.
+ * These are SEL's own US curves (much faster than textbook IEEE C37.112) — the ones the field
+ * recloser/relay controls actually run. See docs/ENGINEERING_NOTES.md for the validation.
+ */
 export const CURVE_CONSTANTS: Record<CurveType, { k: number; alpha: number; c: number }> = {
   definite: { k: 0, alpha: 1, c: 0 },
   'iec-standard-inverse': { k: 0.14, alpha: 0.02, c: 0 },
   'iec-very-inverse': { k: 13.5, alpha: 1, c: 0 },
   'iec-extremely-inverse': { k: 80, alpha: 2, c: 0 },
+  // SEL US curves (c=A, k=B, alpha=P).
+  'us-moderately-inverse': { k: 0.0104, alpha: 0.02, c: 0.0226 },
+  'us-inverse': { k: 5.95, alpha: 2.0, c: 0.18 },
+  'us-very-inverse': { k: 3.88, alpha: 2.0, c: 0.0963 },
+  'us-extremely-inverse': { k: 5.67, alpha: 2.0, c: 0.0352 },
+  'us-short-time-inverse': { k: 0.00342, alpha: 0.02, c: 0.00262 },
 }
 
 /** Relay sensing + processing latency before a trip decision (ms, ~1.5 cycles). */

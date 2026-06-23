@@ -17,9 +17,11 @@ interface SpanProps {
   diameterIn: number
   frames: SimulationFrame[]
   dtMs: number
+  /** Show force arrows / field rings / mid-span slap arc. Off for context (upstream) spans. */
+  showEffects?: boolean
 }
 
-/** One span between two poles: its three conductors plus force/field/arc effects. */
+/** One span between two poles: its three conductors plus optional force/field/arc effects. */
 export function Span({
   z0,
   z1,
@@ -33,6 +35,7 @@ export function Span({
   diameterIn,
   frames,
   dtMs,
+  showEffects = true,
 }: SpanProps) {
   const midZ = (z0 + z1) / 2
   const shared = { restX, attachY, sagU, dispGain, midZ, frames, dtMs }
@@ -54,9 +57,13 @@ export function Span({
           dtMs={dtMs}
         />
       ))}
-      <ForceArrows pair={pair} enabled={isPair} {...shared} />
-      <MagneticFieldRings pair={pair} isPair={isPair} {...shared} />
-      {isPair && <FaultArc pair={pair} {...shared} />}
+      {showEffects && (
+        <>
+          <ForceArrows pair={pair} enabled={isPair} {...shared} />
+          <MagneticFieldRings pair={pair} isPair={isPair} {...shared} />
+          {isPair && <FaultArc pair={pair} {...shared} />}
+        </>
+      )}
     </group>
   )
 }

@@ -9,6 +9,7 @@ import { ModeTabs } from './ModeTabs'
 import { PlaybackControls } from './PlaybackControls'
 import { ApcLogo } from './ApcLogo'
 import { ThemeToggle } from './ThemeToggle'
+import { ResetLayoutButton } from './ResetLayoutButton'
 import { ResizeHandle } from './ResizeHandle'
 import { Spinner } from '@/components/ui/Spinner'
 import { ForceChart } from '@/components/charts/ForceChart'
@@ -37,6 +38,7 @@ function Header() {
         <PlaybackControls />
         <div className="h-6 w-px bg-edge" />
         <ModeTabs />
+        <ResetLayoutButton />
         <ThemeToggle />
       </div>
     </header>

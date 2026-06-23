@@ -15,6 +15,9 @@ import { clamp } from '@/utils/math'
 import { Pole } from './Pole'
 import { Crossarm } from './Crossarm'
 import { Span } from './Span'
+import { Recloser } from './Recloser'
+import { SourceMarker } from './SourceMarker'
+import { EndFaultArc } from './EndFaultArc'
 import { Ground } from './Ground'
 import { DistantPoles } from './DistantPoles'
 import { Skyline } from './Skyline'
@@ -28,8 +31,13 @@ const ATTACH_Y = 0
 const SPAN_RENDER = 0.165 // ft -> world units along the line
 
 interface Geometry {
-  leftSpanU: number
-  rightSpanU: number
+  /** Z of the four poles, source (P0) -> remote (P3). */
+  poleZs: [number, number, number, number]
+  /** Recloser pole (P2) and source/remote ends. */
+  recloserZ: number
+  sourceZ: number
+  remoteZ: number
+  halfExtent: number
   centerZ: number
   restX: Record<Phase, number>
   sagU: number
@@ -39,7 +47,11 @@ interface Geometry {
   diameterIn: number
 }
 
-/** Scene content wrapped in a group that shakes briefly on a slap (either span). */
+/**
+ * Scene content: a 3-span feeder. Source (substation) at P0 on the far side, the G&W recloser at
+ * P2, and the faulted/instrumented span (P2→P3) nearest the camera with the L-L fault at its
+ * remote end (P3). Wrapped in a group that shakes briefly on a slap.
+ */
 function SceneContent({ g }: { g: Geometry }) {
   const groupRef = useRef<THREE.Group>(null)
   const result = useScenarioStore((s) => s.result)
@@ -68,19 +80,38 @@ function SceneContent({ g }: { g: Geometry }) {
     dtMs: result.dtMs,
   }
 
+  const [zP0, zP1, zP2, zP3] = g.poleZs
+
   return (
     <group ref={groupRef}>
-      <Pole z={-g.leftSpanU} height={POLE_HEIGHT} />
-      <Pole z={0} height={POLE_HEIGHT} />
-      <Pole z={g.rightSpanU} height={POLE_HEIGHT} />
-      <Crossarm z={-g.leftSpanU} spacingU={g.restX.C} restX={g.restX} />
-      <Crossarm z={0} spacingU={g.restX.C} restX={g.restX} />
-      <Crossarm z={g.rightSpanU} spacingU={g.restX.C} restX={g.restX} />
+      {g.poleZs.map((z, i) => (
+        <group key={i}>
+          <Pole z={z} height={POLE_HEIGHT} />
+          <Crossarm z={z} spacingU={g.restX.C} restX={g.restX} />
+        </group>
+      ))}
 
-      {/* Faulted (instrumented) span — left */}
-      <Span z0={-g.leftSpanU} z1={0} frames={result.frames} {...shared} />
-      {/* Adjacent comparison span — right */}
-      <Span z0={0} z1={g.rightSpanU} frames={witnessFrames} {...shared} />
+      {/* Upstream spans (context, toward the substation) — clean conductors, no effect overlays. */}
+      <Span z0={zP0} z1={zP1} frames={witnessFrames} showEffects={false} {...shared} />
+      <Span z0={zP1} z1={zP2} frames={witnessFrames} showEffects={false} {...shared} />
+      {/* Faulted / instrumented span (downstream of the recloser). */}
+      <Span z0={zP2} z1={zP3} frames={result.frames} {...shared} />
+
+      {/* G&W recloser + control cabinet at P2. */}
+      <Recloser z={zP2} restX={g.restX} />
+      {/* Source / substation marker at P0. */}
+      <SourceMarker z={zP0} />
+      {/* Line-to-line fault arc at the remote end of the faulted span (P3). */}
+      {g.isPair && (
+        <EndFaultArc
+          pair={g.pair}
+          restX={g.restX}
+          attachY={ATTACH_Y}
+          z={zP3}
+          frames={result.frames}
+          dtMs={result.dtMs}
+        />
+      )}
     </group>
   )
 }
@@ -99,12 +130,25 @@ export function DistributionScene() {
     const geom = faultGeometry(scenario.faultType)
     const pair = { a: geom.phases[0], b: geom.isPair ? geom.phases[1] : geom.phases[0] }
     const conductor = getConductor(scenario.conductorTypeId)
-    const leftSpanU = clamp(scenario.spanLengthFt * SPAN_RENDER, 26, 52)
-    const rightSpanU = clamp(scenario.secondSpanLengthFt * SPAN_RENDER, 18, 52)
+    // Three spans, source -> remote: span1, span2 (upstream context) then the faulted span3.
+    const s3U = clamp(scenario.spanLengthFt * SPAN_RENDER, 26, 46) // faulted (downstream, hero)
+    const s2U = clamp(scenario.secondSpanLengthFt * SPAN_RENDER, 18, 38)
+    const s1U = clamp(scenario.secondSpanLengthFt * SPAN_RENDER * 0.85, 16, 34)
+    const total = s1U + s2U + s3U
+    const start = -total / 2 // re-center the line on z = 0
+    const poleZs: [number, number, number, number] = [
+      start,
+      start + s1U,
+      start + s1U + s2U,
+      start + total,
+    ]
     return {
-      leftSpanU,
-      rightSpanU,
-      centerZ: (-leftSpanU + rightSpanU) / 2,
+      poleZs,
+      recloserZ: poleZs[2],
+      sourceZ: poleZs[0],
+      remoteZ: poleZs[3],
+      halfExtent: total / 2,
+      centerZ: 0,
       restX,
       sagU: scenario.sagFt,
       pair,
@@ -123,7 +167,7 @@ export function DistributionScene() {
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-edge bg-scene">
-      <Canvas dpr={[1, 1.8]} camera={{ position: [-34, 15, 40], fov: 44, near: 0.1, far: 400 }}>
+      <Canvas dpr={[1, 1.8]} camera={{ position: [-58, 24, 52], fov: 46, near: 0.1, far: 400 }}>
         <color attach="background" args={[palette.sceneBg]} />
         {/* Lighter fog so the lit skyline reads; still enough haze for depth. */}
         <fog attach="fog" args={[palette.sceneBg, 150, 340]} />
@@ -146,7 +190,7 @@ export function DistributionScene() {
 
         {/* Street + receding feeder + faded skyline + traffic (all static or instanced). */}
         <Ground centerZ={g.centerZ} />
-        <DistantPoles leftSpanU={g.leftSpanU} rightSpanU={g.rightSpanU} spacing={g.restX.C} isDark={isDark} />
+        <DistantPoles leftSpanU={g.halfExtent} rightSpanU={g.halfExtent} spacing={g.restX.C} isDark={isDark} />
         <Skyline centerZ={g.centerZ} isDark={isDark} />
         <Cars centerZ={g.centerZ} isDark={isDark} />
         <ContactShadows
@@ -180,12 +224,12 @@ export function DistributionScene() {
       <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-lg border border-edge/60 bg-panel/70 px-3 py-1.5 backdrop-blur">
         <span className="h-1.5 w-1.5 rounded-full bg-energized" />
         <span className="text-xs font-medium text-fg-muted">
-          {scenario.voltageClassKv} kV · {scenario.faultType} fault · two spans from a center pole
+          {scenario.voltageClassKv} kV · {scenario.faultType} fault · source → recloser → 3 spans
         </span>
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[280px] text-[10px] leading-snug text-fg-faint">
-        Left span {scenario.spanLengthFt} ft (faulted) · right span {scenario.secondSpanLengthFt} ft.
-        Lateral motion shown at ~{DISP_GAIN}× for clarity.
+      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[300px] text-[10px] leading-snug text-fg-faint">
+        Source (S) at the substation end → G&amp;W recloser → faulted span {scenario.spanLengthFt} ft
+        with the L-L fault at its remote end. Lateral motion shown at ~{DISP_GAIN}× for clarity.
       </div>
     </div>
   )
