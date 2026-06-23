@@ -201,7 +201,7 @@ export function TccChart() {
   )
 
   const card = (
-    <Card className="force-light flex h-full flex-col">
+    <Card className={expanded ? 'force-light flex h-full flex-col' : 'force-light flex flex-col'}>
       <CardHeader
         eyebrow="Protection"
         title="Time–current curves (TCC)"
@@ -212,7 +212,7 @@ export function TccChart() {
           </div>
         }
       />
-      <div className={expanded ? 'min-h-0 flex-1' : 'mx-auto h-[clamp(220px,30vh,320px)] w-[70%]'}>{chart}</div>
+      <div className={expanded ? 'min-h-0 flex-1' : 'aspect-[4/5] w-full'}>{chart}</div>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />

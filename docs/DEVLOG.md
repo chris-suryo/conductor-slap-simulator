@@ -6,6 +6,23 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 13: 1:1.25 ratio applied to all 3 front-page charts
+
+**User request:** apply the same 1:1.25 ratio (just confirmed for the maximized TCC chart) to
+all three charts as shown on the front page (not maximized) — Magnetic force, Conductor
+clearance, TCC. Replaced each chart's plot container with `aspect-[4/5] w-full` (was a fixed
+pixel/clamp height — `min-h-[150px] flex-1` for the first two, `h-[clamp(220px,30vh,320px)]
+w-[70%]` for TCC) so the height is always derived from the column width at the same ratio as the
+maximized view. Since the three charts sit in equal-width grid columns, this also makes all
+three cards land at the same height automatically — dropped the `h-full`/`flex-1` card-stretch
+hack from Session 10 (no longer needed; `useChartData.ts`/`force-light` theming untouched).
+TCC's `Card` only takes `h-full` while `expanded` (the maximized overlay still needs to fill its
+fixed-aspect frame). Verified live: all three plot areas measured 40×50 px → ratio 1.250 on a
+1000×1000 viewport, matching each other and the maximized chart's ratio. No console errors.
+55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 12: maximized TCC ratio relaxed from 1:2 to 1:1.25
 
 **User feedback:** the 1:2 maximized ratio from the previous session was too elongated.
