@@ -6,6 +6,25 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 10: TCC x-axis to 100 kA, skinnier/taller plot
+
+**User request:** extend the TCC chart's current (x) axis from 10–10,000 A to 10–100,000 A, and
+make the chart drawing skinnier but taller. `TccChart.tsx`: added `X_AXIS_MAX_A = 100_000`,
+extended `X_TICKS` to `[10, 100, 1000, 3000, 10000, 30000, 100000]`, and the curve-data
+generation loop now runs out to `X_AXIS_MAX_A` instead of a hardcoded 12000. The non-expanded
+plot area is now `mx-auto w-[70%]` (was full width) at `h-[clamp(220px,30vh,320px)]` (was
+`clamp(150px,17vh,196px)`) — narrower and taller. The maximized overlay's frame is now
+`88vh × min(60vw, 3xl)` (was `80vh × min(92vw, 5xl)`) for the same portrait-ish proportions.
+Since the 3 charts share one grid row, just growing the TCC card would have left dead space
+under the other two (their charts had a fixed pixel height) — fixed by making `ForceChart`'s and
+`DisplacementChart`'s `Card`s `h-full` and their chart containers `flex-1` so all three cards
+stretch together and the row grows cleanly. Verified live: TCC plot measured narrower (28px)
+and taller (300px) than the other two charts' (40px × 252px) at matching card heights (491px);
+x-axis ticks render 10/100/1k/3k/10k/30k/100k in the maximized view; no console errors. 55 tests
+green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 9: TCC chart maximize/restore toggle
 
 **User request:** be able to maximize just the TCC chart (not the other two) and restore it to

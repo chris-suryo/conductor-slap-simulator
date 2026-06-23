@@ -31,10 +31,11 @@ import { useChartTheme } from './useChartData'
 const fmtTime = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)}s` : `${Math.round(ms)}ms`)
 const fmtAmps = (a: number) => (a >= 1000 ? `${+(a / 1000).toFixed(1)}k` : `${Math.round(a)}`)
 
-const X_TICKS = [10, 100, 1000, 2000, 3000, 5000, 7000, 10000]
+const X_TICKS = [10, 100, 1000, 3000, 10000, 30000, 100000]
 /** Fixed low end of the x-axis (A) — full standard decades, like a real TCC sheet, regardless of
  * where either device's pickup happens to sit. */
 const X_AXIS_MIN_A = 10
+const X_AXIS_MAX_A = 100_000
 /** Y-axis (clearing time) spans 10 ms to 1000 s, like a real TCC sheet. */
 const Y_AXIS_MIN_MS = 10
 const Y_AXIS_MAX_MS = 1_000_000
@@ -77,7 +78,7 @@ export function TccChart() {
   const data = useMemo(() => {
     const pts: { current: number; recloser: number | null; relay: number | null }[] = []
     const lowPickup = Math.max(Math.min(recloser.phasePickupA, relay.phasePickupA), 100)
-    for (let i = lowPickup * 1.02; i <= 12000; i *= 1.04) {
+    for (let i = lowPickup * 1.02; i <= X_AXIS_MAX_A; i *= 1.04) {
       pts.push({ current: i, recloser: tocMs(recloser, i), relay: tocMs(relay, i) })
     }
     return pts
@@ -106,7 +107,7 @@ export function TccChart() {
           dataKey="current"
           type="number"
           scale="log"
-          domain={[X_AXIS_MIN_A, 12000]}
+          domain={[X_AXIS_MIN_A, X_AXIS_MAX_A]}
           allowDataOverflow
           ticks={X_TICKS}
           tick={t.axisTick}
@@ -211,7 +212,7 @@ export function TccChart() {
           </div>
         }
       />
-      <div className={expanded ? 'min-h-0 flex-1' : 'h-[clamp(150px,17vh,196px)] w-full'}>{chart}</div>
+      <div className={expanded ? 'min-h-0 flex-1' : 'mx-auto h-[clamp(220px,30vh,320px)] w-[70%]'}>{chart}</div>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />
@@ -226,7 +227,7 @@ export function TccChart() {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       onClick={toggleExpanded}
     >
-      <div className="h-[80vh] w-[92vw] max-w-5xl" onClick={(e) => e.stopPropagation()}>
+      <div className="h-[88vh] w-[60vw] max-w-3xl" onClick={(e) => e.stopPropagation()}>
         {card}
       </div>
     </div>

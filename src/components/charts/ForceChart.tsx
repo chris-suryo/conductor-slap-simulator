@@ -22,9 +22,9 @@ export function ForceChart() {
   const t = useChartTheme()
 
   return (
-    <Card className="force-light flex flex-col">
+    <Card className="force-light flex h-full flex-col">
       <CardHeader eyebrow="Physics" title="Magnetic force" />
-      <div className="h-[clamp(150px,17vh,196px)] w-full">
+      <div className="min-h-[150px] w-full flex-1">
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <defs>
