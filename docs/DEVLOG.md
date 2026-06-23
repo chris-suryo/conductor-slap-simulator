@@ -6,6 +6,23 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 14: taller 3D scene, smaller charts (ratio unchanged)
+
+**User request:** make the conductor slap simulation (3D scene) section taller and the charts
+shorter, while keeping the charts' 1:1.25 ratio from the previous session. Since each chart's
+height is now derived from its column width via `aspect-[4/5]`, shrinking the row's width
+shrinks height too at the same ratio — no chart-component changes needed. `Shell.tsx`: capped
+the chart grid's width with `mx-auto w-full max-w-md shrink-0` (was full-width `grid-cols-3
+gap-3`, stretching across the whole main column). Because `main` is a column flex container with
+the 3D scene as the only `flex-1` child, shrinking the chart row's height hands that freed space
+straight to the scene automatically — no separate "make scene taller" change was needed either.
+Verified live at 1440×900: scene grew to 359px tall (was sharing space with a much taller ~584px
+chart row), chart row dropped to 308px total, each plot measured 107×134 → ratio 1.252 (still
+1:1.25); the maximized TCC overlay is unaffected (792×634 → 1.250). No console errors. 55 tests
+green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 13: 1:1.25 ratio applied to all 3 front-page charts
 
 **User request:** apply the same 1:1.25 ratio (just confirmed for the maximized TCC chart) to
