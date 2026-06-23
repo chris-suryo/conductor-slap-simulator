@@ -17,7 +17,7 @@ import { Crossarm } from './Crossarm'
 import { Span } from './Span'
 import { Recloser } from './Recloser'
 import { SourceMarker } from './SourceMarker'
-import { EndFaultArc } from './EndFaultArc'
+import { FaultFireball } from './FaultFireball'
 import { Ground } from './Ground'
 import { DistantPoles } from './DistantPoles'
 import { Skyline } from './Skyline'
@@ -101,9 +101,9 @@ function SceneContent({ g }: { g: Geometry }) {
       <Recloser z={zP2} restX={g.restX} />
       {/* Source / substation marker at P0. */}
       <SourceMarker z={zP0} />
-      {/* Line-to-line fault arc at the remote end of the faulted span (P3). */}
+      {/* Line-to-line fault fireball/smoke at the remote end of the faulted span (P3). */}
       {g.isPair && (
-        <EndFaultArc
+        <FaultFireball
           pair={g.pair}
           restX={g.restX}
           attachY={ATTACH_Y}

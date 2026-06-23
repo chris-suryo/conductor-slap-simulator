@@ -154,8 +154,8 @@ without clicking, use the dev `window.__store`, e.g.
 - **Done:** AB/BC/AC faults, two-device protection (downstream G&W recloser + upstream substation
   relay) with SEL US curves and fault-location coordination, full reclose sequence, dual TCC chart,
   fault-simulation UX (magnitudes, location, reclose outcome, Run/Stop), **three-span 3D scene**
-  (source "S" marker → G&W recloser + cabinet at P2 → faulted span 3 with an L-L arc at its remote
-  end) on a street (road + receding feeder + skyline + ground shadows + sky), resizable panels +
+  (source "S" marker → G&W recloser + cabinet at P2 → faulted span 3 with a fireball + rising
+  smoke at its remote end) on a street (road + receding feeder + skyline + ground shadows + sky), resizable panels +
   expand-scene toggle, charts, presentation mode, dark/light theming, IBM Plex typography, APC
   branding (recreated logo). Split energization (upstream stays live at reduced load while only
   the recloser is open) + split Live-state UI; small magnetic coupling on the unfaulted phase

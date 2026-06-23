@@ -6,6 +6,29 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 19: fault fireball + smoke instead of an arc line
+
+**User request:** simulate the fault at the remote end of the faulted span as a small
+fireball/smoke effect instead of the existing flickering arc line. Replaced
+`scene/EndFaultArc.tsx` with `scene/FaultFireball.tsx` (and updated the one import/usage site in
+`DistributionScene.tsx`) — same trigger (`frame.faultActive`) and position (midpoint of the
+faulted pair at the remote pole), but the visual is now: a small pulsing emissive sphere
+(orange/yellow flicker between `#ffb33d` and `COLORS.arc`, scale jitter 0.55–0.9) instead of a
+jittering line, plus 5 looping smoke puffs (soft radial-gradient `THREE.Sprite`s, gray,
+1.4s-cycle rise + expand + fade, reusing the project's established procedural-canvas-texture
+pattern from `facadeTexture.ts`/`groundTexture.ts`) drifting upward from the same point. The
+existing flicker point-light is kept (now lights the fireball's glow instead of an arc).
+`FaultArc.tsx` (the separate mid-span conductor-clash arc on contact) is untouched — this only
+replaces the fault-current-location effect, not the slap effect. Verified: typecheck clean, 55
+tests green; live-injected a one-line debug probe (removed after) confirming the new component
+mounts, toggles visibility correctly with `faultActive`, and computes the correct remote-pole
+world position — the preview tool's screenshot capture was glitching/timing out for unrelated
+infra reasons this session (recurring tiled/cropped renders even after server restarts and
+viewport resets), so pixel-level visual confirmation wasn't obtained; relied on the debug-probe
+position/visibility check plus a clean console instead.
+
+---
+
 ## 2026-06-23 — Session 18: triple chart width, keep height fixed
 
 **User request:** triple the 3 charts' width but keep their height unchanged. First attempt
