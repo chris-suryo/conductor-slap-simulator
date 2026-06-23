@@ -6,6 +6,18 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 12: maximized TCC ratio relaxed from 1:2 to 1:1.25
+
+**User feedback:** the 1:2 maximized ratio from the previous session was too elongated.
+`TccChart.tsx`: changed the overlay frame's `aspect-[1/2]` to `aspect-[4/5]` (width:height =
+1:1.25) and raised its `max-w` cap from `44vw` to `80vw` so the cap doesn't bind and distort the
+ratio on narrower/squarer viewports (verified the old `44vw` cap, sized for the 1:2 case, was
+clipping width below the 1:1.25 target on a 1000×1000 test viewport — `80vw` leaves enough room
+for the height-driven width to win). Verified live: measured overlay box at 704×880 → ratio
+1.250 exactly. No console errors. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 11: maximized TCC overlay locked to a 1:2 aspect ratio
 
 **User request:** when the TCC chart is maximized, its width:height should be exactly 1:2.
