@@ -6,6 +6,25 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 18: triple chart width, keep height fixed
+
+**User request:** triple the 3 charts' width but keep their height unchanged. First attempt
+tried compensating by changing each chart's `aspect-[4/5]` to `aspect-[12/5]` while tripling the
+row's width (`w-[28.3%]` → `w-[84.9%]`, mirroring Session 16/17's math) — this was wrong: each
+card has a *fixed* `p-4` padding, so tripling the grid-column width doesn't triple the chart's
+*inner* content width by the same factor (padding is a much bigger fraction of a small column
+than a large one), so the aspect-ratio-derived height ballooned to ~2.25× instead of staying
+flat (caught via DOM measurement: height 28px → 63px). **Fix:** decoupled width from height —
+`ForceChart.tsx`/`DisplacementChart.tsx`/`TccChart.tsx`'s plot containers now use an explicit
+`h-[clamp(24px,3.2vh,36px)]` (matching the previous rendered height almost exactly) instead of
+an `aspect-*` class, while `Shell.tsx`'s row width stays at the tripled `w-[84.9%]`. Verified
+live at 1440×900: row width 582px (84.9% of mainW 686, as intended), plot height 28px → 29px
+(flat, 1px rounding) while plot width grew 23px → 152px (clearly wider). The maximized TCC
+overlay (separate code path, still `aspect-[4/5]`) is unaffected — re-checked at 634×792, ratio
+1.250. No console errors. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 17: charts shrunk to a third of their previous size
 
 **User request:** make the 3 charts a third of their current size. `Shell.tsx`: chart grid
