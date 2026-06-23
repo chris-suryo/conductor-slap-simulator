@@ -6,6 +6,22 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 16: chart row width set to 85% of the main column
+
+**User request:** make the 3-chart row occupy 85% of the width of the "bottom front view" (the
+main column under the 3D scene), instead of the fixed `max-w-md` cap from Session 14.
+`Shell.tsx`: changed the chart grid wrapper from `mx-auto grid w-full max-w-md shrink-0
+grid-cols-3 gap-3` to `mx-auto grid w-[85%] shrink-0 grid-cols-3 gap-3` — width is now always
+85% of `main`'s width (which itself flexes with the left/right aside widths and window size)
+rather than a fixed pixel cap. Verified via DOM measurement at both 1440×900 (mainW 686 → rowW
+583, 85.0%) and the default viewport (mainW 526 → rowW 447, 85.0%, 3 equal 141px cards); no
+console errors. Note: the preview tool's screenshot capture was unavailable this session
+(timed out repeatedly even on a fresh server / before any of this change, with `eval` and the
+dev server itself both healthy) — verification relied on DOM/computed-style assertions instead.
+55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 15: light background on the Protection sequence panel
 
 **User request:** change the Protection sequence (timeline) panel's background from dark to
