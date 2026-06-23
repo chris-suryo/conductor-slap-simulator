@@ -6,6 +6,16 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 11: maximized TCC overlay locked to a 1:2 aspect ratio
+
+**User request:** when the TCC chart is maximized, its width:height should be exactly 1:2.
+`TccChart.tsx`: the overlay frame was `h-[88vh] w-[60vw] max-w-3xl` (independent width/height,
+no fixed ratio) — changed to `aspect-[1/2] h-[88vh] max-w-[44vw]`, so width is always derived as
+height/2 instead of being set independently. Verified live: measured overlay box at
+440×880 → ratio 0.500 exactly. No console errors. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 10: TCC x-axis to 100 kA, skinnier/taller plot
 
 **User request:** extend the TCC chart's current (x) axis from 10–10,000 A to 10–100,000 A, and

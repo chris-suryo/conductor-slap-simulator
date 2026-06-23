@@ -227,7 +227,7 @@ export function TccChart() {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       onClick={toggleExpanded}
     >
-      <div className="h-[88vh] w-[60vw] max-w-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="aspect-[1/2] h-[88vh] max-w-[44vw]" onClick={(e) => e.stopPropagation()}>
         {card}
       </div>
     </div>
