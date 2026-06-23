@@ -30,6 +30,21 @@ export const NOMINAL_LOAD_CURRENT_A = 200
 export const REDUCED_LOAD_CURRENT_A = 100
 
 /**
+ * Load current (A) assumed in the UNFAULTED phase during a line-to-line fault. It sets the much
+ * smaller magnetic interaction between that phase and the two faulted conductors (force scales
+ * with I_load * I_fault, not I_fault^2).
+ */
+export const UNFAULTED_PHASE_CURRENT_A = 200
+
+/**
+ * De-rating factor (0..1) on the unfaulted-phase force. The coherent (time-averaged) force depends
+ * on the phase angle between the load current and the fault current (~cos phi), which the steady-
+ * RMS model can't resolve — so the in-phase estimate is scaled down. Pure educational knob: raise
+ * it to make the unfaulted-phase sway more visible, lower it to mute it.
+ */
+export const UNFAULTED_COUPLING = 0.3
+
+/**
  * Inverse-curve constants for `t = (TMS|TD) * (k / (M^alpha - 1) + c)`, with `M = I / pickup`.
  *
  * IEC 60255 curves use `c = 0`. The SEL "US" curves (U1–U5) map onto the SAME algebraic form

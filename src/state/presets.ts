@@ -119,7 +119,16 @@ export const PRESETS: ScenarioPreset[] = [
     id: 'no-protection',
     name: 'No / slow protection',
     description: 'Fault stays energized long enough to drive a large swing — the conductors slap on the rebound.',
-    scenario: cloneScenario({ ...DEFAULT_SCENARIO, protectionEnabled: false }),
+    scenario: cloneScenario({
+      ...DEFAULT_SCENARIO,
+      protectionEnabled: false,
+      // Disabling the recloser controller routes the fault to the substation relay backup (see
+      // runSimulation.ts) — realistic, but it would clear this preset's fault in ~0.2 s and defeat
+      // the "nothing clears it" teaching point. Give the relay a pickup far above anything the
+      // fault-current slider can dial in (max 10000 A) so it can't see this fault either, for a
+      // clean demonstration of a feeder with no working protection at all.
+      substationRelay: { ...DEFAULT_SUBSTATION_RELAY, phasePickupA: 50000, groundPickupA: 50000 },
+    }),
   },
   {
     id: 'restrike',

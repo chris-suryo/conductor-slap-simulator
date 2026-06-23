@@ -29,6 +29,7 @@ interface ScenarioState {
   // Scenario edits (each re-runs the simulation and replays from the start)
   patchScenario: (patch: Partial<Scenario>) => void
   patchProtection: (patch: Partial<ProtectionSettings>) => void
+  patchSubstationRelay: (patch: Partial<ProtectionSettings>) => void
   setFaultType: (faultType: FaultType) => void
   setProtectionEnabled: (enabled: boolean) => void
   applyPreset: (id: string) => void
@@ -72,6 +73,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => {
     patchProtection: (patch) => {
       const s = get().scenario
       rerun({ ...s, protection: { ...s.protection, ...patch } }, null)
+    },
+    patchSubstationRelay: (patch) => {
+      const s = get().scenario
+      rerun({ ...s, substationRelay: { ...s.substationRelay, ...patch } }, null)
     },
     setFaultType: (faultType) => rerun({ ...get().scenario, faultType }, null),
     setProtectionEnabled: (enabled) =>

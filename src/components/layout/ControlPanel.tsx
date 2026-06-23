@@ -1,6 +1,6 @@
 import { useScenarioStore } from '@/state/useScenarioStore'
 import { CONDUCTOR_CATALOG } from '@/simulation/conductorCatalog'
-import type { CurveType, FaultLocation, FaultType } from '@/simulation/types'
+import type { CurveType, FaultLocation, FaultType, ProtectionSettings } from '@/simulation/types'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Slider } from '@/components/ui/Slider'
 import { Select } from '@/components/ui/Select'
@@ -54,12 +54,74 @@ const RECLOSE_OUTCOME_OPTIONS = [
 /** Quick-select downstream fault magnitudes (A). */
 const QUICK_MAGNITUDES = [1500, 3140, 5000, 8500]
 
+/**
+ * One device's actual settings (CTR, pickup, curve, time dial) — used twice, side by side, for
+ * the recloser controller and the substation relay so they can be compared directly.
+ */
+function DeviceSettingsColumn({
+  title,
+  accent,
+  device,
+  disabled,
+  onPatch,
+}: {
+  title: string
+  accent: string
+  device: ProtectionSettings
+  disabled?: boolean
+  onPatch: (patch: Partial<ProtectionSettings>) => void
+}) {
+  const secondaryA = device.phasePickupA / device.ctr
+  return (
+    <div className={cn('space-y-3 rounded-lg border border-edge bg-panel-raised p-2.5', disabled && 'opacity-50')}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>
+        {title}
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="label-eyebrow">CTR</span>
+        <span className="stat-value text-[13px] text-fg">{device.ctr}:1</span>
+      </div>
+      <div>
+        <Slider
+          label="Phase pickup (primary)"
+          value={device.phasePickupA}
+          min={100}
+          max={1200}
+          step={50}
+          unit="A"
+          disabled={disabled}
+          onChange={(v) => onPatch({ phasePickupA: v })}
+        />
+        <p className="mt-1 text-[11px] text-fg-faint">= {secondaryA.toFixed(2)} A secondary (CTR {device.ctr}:1)</p>
+      </div>
+      <Select
+        label="Inverse curve"
+        value={device.curveType}
+        options={CURVE_OPTIONS}
+        disabled={disabled}
+        onChange={(v) => onPatch({ curveType: v as CurveType })}
+      />
+      <Slider
+        label="Time dial (TD)"
+        value={device.timeMultiplier}
+        min={0.05}
+        max={3}
+        step={0.05}
+        disabled={disabled}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ timeMultiplier: v })}
+      />
+    </div>
+  )
+}
+
 export function ControlPanel() {
   const scenario = useScenarioStore((s) => s.scenario)
   const activePresetId = useScenarioStore((s) => s.activePresetId)
   const applyPreset = useScenarioStore((s) => s.applyPreset)
   const patchScenario = useScenarioStore((s) => s.patchScenario)
   const patchProtection = useScenarioStore((s) => s.patchProtection)
+  const patchSubstationRelay = useScenarioStore((s) => s.patchSubstationRelay)
   const setFaultType = useScenarioStore((s) => s.setFaultType)
   const setProtectionEnabled = useScenarioStore((s) => s.setProtectionEnabled)
   const restart = useScenarioStore((s) => s.restart)
@@ -257,82 +319,83 @@ export function ControlPanel() {
 
       {/* Protection */}
       <Card>
-        <CardHeader eyebrow="Relay / recloser" title="Protection" />
+        <CardHeader eyebrow="Relay / recloser" title="Protection settings" />
         <div className="space-y-4">
-          <Toggle
-            label="Protection enabled"
-            checked={scenario.protectionEnabled}
-            onChange={(b) => setProtectionEnabled(b)}
-          />
+          <div>
+            <Toggle
+              label="Recloser controller enabled"
+              checked={scenario.protectionEnabled}
+              onChange={(b) => setProtectionEnabled(b)}
+            />
+            <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">
+              Only disables the recloser. The substation relay always stays in service — if the
+              recloser doesn't react to a downstream fault, the relay clears it instead and
+              de-energizes the whole feeder (no split) when its breaker opens.
+            </p>
+          </div>
 
-          <Slider
-            label="Phase pickup"
-            value={p.phasePickupA}
-            min={100}
-            max={1200}
-            step={50}
-            unit="A"
-            disabled={protOff}
-            onChange={(v) => patchProtection({ phasePickupA: v })}
-          />
-          <Slider
-            label="Instantaneous pickup"
-            value={p.phaseInstantaneousPickupA}
-            min={1000}
-            max={12000}
-            step={250}
-            disabled={protOff}
-            onChange={(v) => patchProtection({ phaseInstantaneousPickupA: v })}
-            format={fmtAmps}
-            hint="Fault above this trips instantly; below it rides the time curve."
-          />
-          <Select
-            label="Inverse curve"
-            value={p.curveType}
-            options={CURVE_OPTIONS}
-            disabled={protOff}
-            onChange={(v) => patchProtection({ curveType: v as CurveType })}
-          />
-          <Slider
-            label="Time multiplier (TMS)"
-            value={p.timeMultiplier}
-            min={0.05}
-            max={1}
-            step={0.05}
-            disabled={protOff}
-            format={(v) => v.toFixed(2)}
-            onChange={(v) => patchProtection({ timeMultiplier: v })}
-          />
-          <Slider
-            label="Breaker open time"
-            value={p.breakerOpenTimeMs}
-            min={16}
-            max={120}
-            step={1}
-            unit="ms"
-            disabled={protOff}
-            onChange={(v) => patchProtection({ breakerOpenTimeMs: v })}
-          />
-          <Slider
-            label="First reclose dead time"
-            value={firstRecloseDelay}
-            min={200}
-            max={5000}
-            step={50}
-            disabled={protOff}
-            format={fmtMs}
-            onChange={setFirstRecloseDelay}
-            fill={COLORS.energized}
-          />
-          <Slider
-            label="Shots to lockout"
-            value={p.shotsToLockout}
-            min={1}
-            max={4}
-            step={1}
-            disabled={protOff}
-            onChange={(v) => patchProtection({ shotsToLockout: v })}
-          />
+          <div className="grid grid-cols-2 gap-2.5">
+            <DeviceSettingsColumn
+              title="Recloser (downstream)"
+              accent={COLORS.fault}
+              device={p}
+              disabled={protOff}
+              onPatch={patchProtection}
+            />
+            <DeviceSettingsColumn
+              title="Substation relay (upstream)"
+              accent={COLORS.energized}
+              device={scenario.substationRelay}
+              onPatch={patchSubstationRelay}
+            />
+          </div>
+
+          <div className={cn('space-y-4 border-t border-edge pt-4', protOff && 'opacity-50')}>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+              Recloser sequence
+            </p>
+            <Slider
+              label="Instantaneous pickup"
+              value={p.phaseInstantaneousPickupA}
+              min={1000}
+              max={12000}
+              step={250}
+              disabled={protOff}
+              onChange={(v) => patchProtection({ phaseInstantaneousPickupA: v })}
+              format={fmtAmps}
+              hint="Fault above this trips instantly; below it rides the time curve."
+            />
+            <Slider
+              label="Breaker open time"
+              value={p.breakerOpenTimeMs}
+              min={16}
+              max={120}
+              step={1}
+              unit="ms"
+              disabled={protOff}
+              onChange={(v) => patchProtection({ breakerOpenTimeMs: v })}
+            />
+            <Slider
+              label="First reclose dead time"
+              value={firstRecloseDelay}
+              min={200}
+              max={5000}
+              step={50}
+              disabled={protOff}
+              format={fmtMs}
+              onChange={setFirstRecloseDelay}
+              fill={COLORS.energized}
+            />
+            <Slider
+              label="Shots to lockout"
+              value={p.shotsToLockout}
+              min={1}
+              max={4}
+              step={1}
+              disabled={protOff}
+              onChange={(v) => patchProtection({ shotsToLockout: v })}
+            />
+          </div>
         </div>
       </Card>
 
