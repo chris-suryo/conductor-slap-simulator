@@ -87,7 +87,7 @@ export function TccChart() {
         title="Time–current curves (TCC)"
         right={!scenario.protectionEnabled ? <Badge tone="deenergized">Disabled</Badge> : undefined}
       />
-      <div className="mb-1 flex items-center gap-4">
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />
       </div>
