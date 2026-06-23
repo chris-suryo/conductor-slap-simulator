@@ -23,7 +23,7 @@ export function DisplacementChart() {
   const threshold = result.contactThresholdFt
 
   return (
-    <Card className="flex flex-col">
+    <Card className="force-light flex flex-col">
       <CardHeader eyebrow="Physics" title="Conductor clearance" />
       <div className="h-[clamp(150px,17vh,196px)] w-full">
         <ResponsiveContainer>

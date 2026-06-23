@@ -6,6 +6,25 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 8: light background on the 3 chart cards
+
+**User request:** change the background of all 3 charts (Magnetic force, Conductor clearance,
+TOC/TCC curve) from dark to light, regardless of the app's active dark/light theme. Added a
+`.force-light` class in `index.css` that overrides the same theme CSS vars the `.dark`/`.light`
+root blocks set (`--panel`, `--text-1/2/3`, `--edge*`, `--grid-line`, `--tooltip-bg`,
+`--playhead`) with the light theme's values — every Tailwind utility built on those vars
+(`bg-panel`, `text-fg*`, `border-edge*`) flips to light within that scope, so card chrome and
+text stay correctly readable without touching the rest of the app. Applied `force-light` to the
+three chart `Card`s (`ForceChart.tsx`, `DisplacementChart.tsx`, `TccChart.tsx`). Pinned
+`useChartTheme()` (`useChartData.ts`) to `buildPalette('light')` instead of the resolved app
+theme, since Recharts needs concrete JS color strings, not CSS vars — this is the same hook all
+3 (and only those 3) charts use. Verified live: card background/border/title color computed as
+white/slate-200/navy regardless of the app being in dark mode; hit the known stale-HMR cascade
+after the CSS+component edits (errors in all 3 chart components) — full `preview_stop`/
+`preview_start` cleared it, no errors after. 55 tests green, typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 7: TCC chart legend moved below, caption removed
 
 **User request:** remove the explanatory caption underneath the TCC chart and move the

@@ -117,6 +117,27 @@
     @apply rounded-lg border border-edge-soft bg-panel-muted;
   }
 
+  /* Forces a light surface for specific cards (the 3 charts) regardless of the active app
+   * theme, by overriding the same CSS vars the .dark/.light blocks set — every Tailwind
+   * utility built on them (bg-panel, text-fg*, border-edge*) flips to light within this scope. */
+  .force-light {
+    --panel: 255 255 255;
+    --panel-muted: 241 245 250;
+    --panel-raised: 255 255 255;
+    --edge-soft: 226 232 240;
+    --edge: 203 213 225;
+    --edge-bright: 148 163 184;
+    --text-1: 15 23 42;
+    --text-2: 71 85 105;
+    --text-3: 100 116 139;
+    --grid-line: 226 232 240;
+    --tooltip-bg: 255 255 255;
+    --playhead: 15 23 42;
+  }
+  .force-light.panel {
+    box-shadow: theme('boxShadow.panel-light');
+  }
+
   /* APC editorial accent: a thin brand rule along the top edge of a card. */
   .panel-accent {
     @apply relative;

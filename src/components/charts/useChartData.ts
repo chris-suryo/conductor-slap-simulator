@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
-import { useThemeColors } from '@/theme/useThemeColors'
+import { buildPalette } from '@/theme/tokens'
 
 export interface ChartPoint {
   tS: number
@@ -60,9 +60,10 @@ export interface ChartTheme {
   surface: string
 }
 
-/** Theme-aware Recharts styling derived from the active palette. */
+/** Recharts styling — pinned to the light palette so the 3 chart cards stay light regardless
+ * of the app's active dark/light theme (matches the `force-light` class on their Card). */
 export function useChartTheme(): ChartTheme {
-  const c = useThemeColors()
+  const c = useMemo(() => buildPalette('light'), [])
   return {
     axisTick: { fontSize: 10, fill: c.text3 },
     gridStroke: c.gridLine,

@@ -85,7 +85,7 @@ export function TccChart() {
   const relayOp = useMemo(() => firstOpMs(relay, I), [relay, I])
 
   return (
-    <Card className="flex flex-col">
+    <Card className="force-light flex flex-col">
       <CardHeader
         eyebrow="Protection"
         title="Time–current curves (TCC)"
