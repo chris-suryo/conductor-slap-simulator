@@ -1,13 +1,15 @@
 # APC brand assets — drop slot
 
-Place the official APC Relay Engineering logo files here, then point `BRAND.logo` at them in
-`src/theme/brand.ts`:
+The official APC Relay Engineering logo (from `APC Office Related Stationary/PNG/`, 3333×833
+RGBA PNGs) lives here, referenced by `BRAND.logo` in `src/theme/brand.ts`:
 
-- `apc-logo.svg` — logo for **dark** backgrounds → `BRAND.logo.src = '/brand/apc-logo.svg'`
-- `apc-logo-light.svg` — (optional) logo for **light** backgrounds → `BRAND.logo.srcLight = '/brand/apc-logo-light.svg'`
+- `apc-logo.png` — light-ink (white text) lockup, for the app's **dark** header →
+  `BRAND.logo.src = '/brand/apc-logo.png'`
+- `apc-logo-light.png` — dark-ink (navy text) lockup, for the app's **light** header →
+  `BRAND.logo.srcLight = '/brand/apc-logo-light.png'`
 
-Also set `BRAND.logo.aspect` to the art's width ÷ height, and update the official brand
-colors in `BRAND.colors` (accent / navy) and the favicon in `index.html`.
+Source naming is the inverse of the app's: the vendor files are named `_Light`/`_Dark` for the
+ink color, not the background. `BRAND.logo.aspect` is the art's width ÷ height (3333/833).
 
-Files in `public/` are served from the site root, so `public/brand/apc-logo.svg` is referenced
-as `/brand/apc-logo.svg`. Until a logo is provided, the app renders a typographic wordmark.
+Files in `public/` are served from the site root, so `public/brand/apc-logo.png` is referenced
+as `/brand/apc-logo.png`. If no logo is set, the app falls back to a typographic wordmark.

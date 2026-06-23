@@ -58,9 +58,10 @@ export const BRAND: Brand = {
     navyDark: '#0a2740',
     onAccent: '#06121e',
   },
-  // Recreated APC lockup (placeholder until the official vector arrives — then just
-  // replace the files in public/brand/ and keep these paths). aspect = viewBox w/h.
-  logo: { src: '/brand/apc-logo.svg', srcLight: '/brand/apc-logo-light.svg', aspect: 340 / 104 },
+  // Official APC lockup (3333x833 PNG, transparent). `src` carries the light-ink (white text)
+  // version for the dark theme's dark header; `srcLight` carries the dark-ink (navy text)
+  // version for the light theme's light header.
+  logo: { src: '/brand/apc-logo.png', srcLight: '/brand/apc-logo-light.png', aspect: 3333 / 833 },
   // Matches the APC website's IBM Plex / Carbon-style typography.
   fonts: { sans: "'IBM Plex Sans', system-ui, sans-serif", mono: "'IBM Plex Mono', ui-monospace, monospace" },
 }

@@ -6,6 +6,22 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-22 — Session 6: official APC logo
+
+Swapped the recreated/placeholder logo for the official one. Found two matched PNGs (3333×833,
+RGBA/transparent) in the user's `APC Office Related Stationary/PNG/` folder — vendor naming is
+the INVERSE of the app's convention (`_Light`/`_Dark` describe the ink color, not the intended
+background): `APC-Logo_Light.png` has white ink (for dark backgrounds), `APC-Logo_Dark.png` has
+navy ink (for light backgrounds). Copied to `public/brand/apc-logo.png` (→ `BRAND.logo.src`, the
+dark-theme header) and `public/brand/apc-logo-light.png` (→ `BRAND.logo.srcLight`, the light-theme
+header), removed the old recreated SVGs, updated `aspect` to 3333/833. Verified live in both
+themes: correct file loads per theme (`naturalWidth` 3333, `complete: true`), renders at the
+right size/aspect in the header, no console errors. 55 tests green, typecheck clean (asset +
+config only, no source logic changed). Favicon (`apc-favicon.svg`) untouched — out of scope,
+flagged if wanted later.
+
+---
+
 ## 2026-06-22 — Session 5: minor tweaks — default sag, TCC x-axis floor
 
 **User request:** default conductor sag → 4 ft (was 5); TCC chart x-axis should start at 10 A
