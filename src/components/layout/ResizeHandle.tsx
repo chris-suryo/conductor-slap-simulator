@@ -30,7 +30,9 @@ export function ResizeHandle({
       aria-label={ariaLabel}
       tabIndex={0}
       className={cn(
-        'group relative flex w-1.5 shrink-0 cursor-col-resize touch-none items-stretch justify-center',
+        // Wider grabbable hit area than the visible line (which stays thin, drawn by the
+        // inner <span>) so the divider is easy to find and grab with a mouse.
+        'group relative flex w-4 shrink-0 cursor-col-resize touch-none items-stretch justify-center',
         'focus:outline-none',
         className,
       )}
