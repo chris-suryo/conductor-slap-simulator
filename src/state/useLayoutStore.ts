@@ -12,11 +12,13 @@ import { clamp } from '@/utils/math'
 
 const STORAGE_KEY = 'csim-layout'
 
-export const LEFT_MIN = 260
-export const LEFT_MAX = 520
+// Left panel widened for legibility (scrolling is fine — it's the controls panel, not the
+// scene). Right panel (Results) is back to its original range; it didn't need the extra width.
+export const LEFT_MIN = 420
+export const LEFT_MAX = 800
 export const RIGHT_MIN = 240
 export const RIGHT_MAX = 480
-const LEFT_DEFAULT = 346
+const LEFT_DEFAULT = 560
 const RIGHT_DEFAULT = 324
 
 interface Persisted {
