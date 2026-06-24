@@ -6,6 +6,69 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 25: ABC three-phase faults — real physics + UI enable + 3D generalization
+
+**Closes the last stub.** ABC was typed (`faultGeometry()` already returned `{ phases: ['A','B',
+'C'], isPair: false }`) but had no physics (the force step was gated on `isPair`, so it never
+ran) and was disabled in the fault-type dropdown ("3-phase (coming soon)").
+
+**Physics (`runSimulation.ts` + `computeWitnessFrames()`):** a genuine 3-phase bolted fault puts
+full fault current on all three conductors, so every pair (A–B, B–C, A–C) repels with the same
+I·I formula already used for an L-L fault. Added an `isThreePhase` branch summing each
+conductor's repulsion from the OTHER two: the two OUTER phases (A, C) get pushed further outward
+because both contributions point the same way; the CENTER phase (B) gets opposing,
+largely-cancelling contributions and stays near rest — verified live, B sits at EXACTLY 0 ft
+displacement while A/C swing to ±2.09 ft symmetrically (default no-protection scenario). The
+scalar frame fields (`pairSeparationFt`/`clearanceFt`/`forcePerLenNPerM`) now track whichever of
+the 3 pairs is currently closest (same currents ⇒ closest pair = highest-force pair, so this is
+self-consistent); `minClearanceFt` tracking and slap detection were generalized from an
+`isPair`-only gate to `hasPairwiseClearance = isPair || isThreePhase`. `computeWitnessFrames()`
+got the mirror-image branch so the upstream comparison spans show correct ABC motion too.
+`singlePoleTrip` needed no change — it's already keyed on `geom.phases.length === 1`, which is
+naturally false for ABC, so the recloser trips all 3 poles together like an L-L fault.
+
+**UI:** `ControlPanel.tsx`'s fault-type dropdown — removed `disabled: true` and relabeled
+`'3-phase (coming soon)'` → `'A–B–C (three-phase)'`.
+
+**3D scene generalization:** the per-effect components were hardwired to a single `{a, b}` pair
++ `isPair` boolean, which has no way to express 3 simultaneous conductors. Generalized the whole
+pipeline to a `phases: Phase[]` list (computed once in `DistributionScene.tsx` as `geom.phases`,
+threaded through `Span.tsx`):
+- `MagneticFieldRings`: now renders one ring set per phase in the list (was hardwired to
+  `pair.a` + conditionally `pair.b`).
+- `ForceArrows`: generalized from 2 fixed arrows to a 3-arrow pool (A/B/C), each pointing away
+  from the AVERAGE position of the OTHER phases in the list — this collapses to the exact old
+  pair formula when there are 2 phases, and naturally gives the center conductor a near-zero/
+  don't-care direction for ABC (its length stays tiny since the real force on it is ~0).
+- `FaultArc`: previously relied on the frame's GLOBAL scalar `frame.contact`, which only tracks
+  ONE (the closest) pair — wrong for ABC, where 3 independent arcs need to flash independently.
+  Changed it to compute its OWN pair's surface-to-surface clearance from live positions (added a
+  `diameterIn` prop) and decide contact itself; `Span.tsx` now renders one `FaultArc` per pair
+  that's fully contained in `phases` (its `ALL_PAIRS` constant, filtered) — 0 arcs for a ground
+  fault, 1 for L-L, 3 for ABC. Caught and fixed a bug here during review: the contact check must
+  use the UN-exaggerated displacement, not the `dispGain`-scaled rendering position, or the arc
+  flashes before real contact.
+- `FaultFireball`: changed from `pair.a`/`pair.b` midpoint to the average rest position of every
+  phase in the list — collapses correctly to the single faulted phase for a ground fault, the
+  midpoint for L-L, and dead-center for ABC.
+
+**Tests:** new `describe('runSimulation — three-phase faults (ABC)')` block — protection clears
+normally; the recloser is NOT single-pole trippable for ABC; outer phases swing, center phase
+stays under 10% of the outer displacement; no-protection ABC swings and slaps, same teaching
+story as an L-L fault; protected vs. unprotected comparison. 70 tests green (was 65), typecheck
+clean. No existing test needed to change — the new branches are purely additive (only fire when
+`geom.phases.length === 3`, which no prior test exercised).
+
+**Verified live:** drove the store to `faultType: 'ABC'` and read `result.frames` directly —
+`maxA`/`maxC` = 2.09 ft (symmetric), `maxB` = exactly 0, `finalState: 'RESTORED'`,
+`slapOccurred: false`, `minClearanceFt: 1.63 ft`. Confirmed the Live-status Outcome card shows
+the same numbers. No console errors with ABC selected in the running app (a stale-HMR error
+storm appeared first, as documented before — a full `preview_stop`/`preview_start` cleared it,
+unrelated to the code change). Updated `CLAUDE.md`'s and `README.md`'s "stubbed" language to
+describe the finished feature.
+
+---
+
 ## 2026-06-23 — Session 24: ground faults now couple a small force onto the two healthy phases
 
 **Closes the open question from Session 23.** The user confirmed ("Yes") the proposed fix for

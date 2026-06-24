@@ -4,6 +4,13 @@ import { ForceArrows } from './ForceArrows'
 import { MagneticFieldRings } from './MagneticFieldRings'
 import { FaultArc } from './FaultArc'
 
+/** Every unique conductor pair, used to render one slap arc per pair for a 3-phase fault. */
+const ALL_PAIRS: { a: Phase; b: Phase }[] = [
+  { a: 'A', b: 'B' },
+  { a: 'B', b: 'C' },
+  { a: 'A', b: 'C' },
+]
+
 interface SpanProps {
   z0: number
   z1: number
@@ -11,8 +18,8 @@ interface SpanProps {
   attachY: number
   sagU: number
   dispGain: number
-  pair: { a: Phase; b: Phase }
-  isPair: boolean
+  /** Every conductor carrying fault current (1 ground, 2 L-L, 3 ABC). */
+  phases: Phase[]
   participates: (p: Phase) => boolean
   diameterIn: number
   frames: SimulationFrame[]
@@ -29,8 +36,7 @@ export function Span({
   attachY,
   sagU,
   dispGain,
-  pair,
-  isPair,
+  phases,
   participates,
   diameterIn,
   frames,
@@ -59,9 +65,14 @@ export function Span({
       ))}
       {showEffects && (
         <>
-          <ForceArrows pair={pair} enabled={isPair} {...shared} />
-          <MagneticFieldRings pair={pair} isPair={isPair} {...shared} />
-          {isPair && <FaultArc pair={pair} {...shared} />}
+          <ForceArrows phases={phases} {...shared} />
+          <MagneticFieldRings phases={phases} {...shared} />
+          {/* Pairwise slap arcs: each watches its own pair's clearance, so a ground fault (no
+              faulted pair) shows none, an L-L fault shows the one faulted pair, and a 3-phase
+              fault shows all 3 — whichever pair actually swings together flashes on contact. */}
+          {ALL_PAIRS.filter((p) => phases.includes(p.a) && phases.includes(p.b)).map((p) => (
+            <FaultArc key={`${p.a}${p.b}`} pair={p} diameterIn={diameterIn} {...shared} />
+          ))}
         </>
       )}
     </group>

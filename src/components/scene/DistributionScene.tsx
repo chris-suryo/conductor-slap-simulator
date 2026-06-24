@@ -41,8 +41,8 @@ interface Geometry {
   centerZ: number
   restX: Record<Phase, number>
   sagU: number
-  pair: { a: Phase; b: Phase }
-  isPair: boolean
+  /** Every conductor carrying fault current (1 ground, 2 L-L, 3 ABC). */
+  phases: Phase[]
   participates: (p: Phase) => boolean
   diameterIn: number
 }
@@ -73,8 +73,7 @@ function SceneContent({ g }: { g: Geometry }) {
     attachY: ATTACH_Y,
     sagU: g.sagU,
     dispGain: DISP_GAIN,
-    pair: g.pair,
-    isPair: g.isPair,
+    phases: g.phases,
     participates: g.participates,
     diameterIn: g.diameterIn,
     dtMs: result.dtMs,
@@ -101,11 +100,11 @@ function SceneContent({ g }: { g: Geometry }) {
       <Recloser z={zP2} restX={g.restX} />
       {/* Source / substation marker at P0. */}
       <SourceMarker z={zP0} />
-      {/* Fault fireball/smoke at the remote end of the faulted span (P3). For a line-to-ground
-          fault `g.pair` collapses to the single faulted phase (a === b), so this also covers
-          AG/BG/CG correctly with no extra branching. */}
+      {/* Fault fireball/smoke at the remote end of the faulted span (P3), centered on the average
+          position of every faulted conductor — a single faulted phase for AG/BG/CG, the midpoint
+          for an L-L pair, dead-center for ABC. */}
       <FaultFireball
-        pair={g.pair}
+        phases={g.phases}
         restX={g.restX}
         attachY={ATTACH_Y}
         z={zP3}
@@ -128,7 +127,6 @@ export function DistributionScene() {
     const spacingU = scenario.phaseSpacingFt
     const restX: Record<Phase, number> = { A: -spacingU, B: 0, C: spacingU }
     const geom = faultGeometry(scenario.faultType)
-    const pair = { a: geom.phases[0], b: geom.isPair ? geom.phases[1] : geom.phases[0] }
     const conductor = getConductor(scenario.conductorTypeId)
     // Three spans, source -> remote: span1, span2 (upstream context) then the faulted span3.
     const s3U = clamp(scenario.spanLengthFt * SPAN_RENDER, 26, 46) // faulted (downstream, hero)
@@ -151,8 +149,7 @@ export function DistributionScene() {
       centerZ: 0,
       restX,
       sagU: scenario.sagFt,
-      pair,
-      isPair: geom.isPair,
+      phases: geom.phases,
       participates: (p: Phase) => geom.phases.includes(p),
       diameterIn: conductor.diameterIn,
     }

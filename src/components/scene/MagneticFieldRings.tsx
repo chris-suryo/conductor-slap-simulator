@@ -58,8 +58,7 @@ function PhaseRings({ phase, restX, attachY, sagU, dispGain, midZ, frames, dtMs 
 }
 
 export function MagneticFieldRings({
-  pair,
-  isPair,
+  phases,
   restX,
   attachY,
   sagU,
@@ -68,8 +67,8 @@ export function MagneticFieldRings({
   frames,
   dtMs,
 }: {
-  pair: { a: Phase; b: Phase }
-  isPair: boolean
+  /** Every conductor carrying fault current (1 for a ground fault, 2 for L-L, 3 for ABC). */
+  phases: Phase[]
   restX: Record<Phase, number>
   attachY: number
   sagU: number
@@ -81,8 +80,9 @@ export function MagneticFieldRings({
   const shared = { restX, attachY, sagU, dispGain, midZ, frames, dtMs }
   return (
     <group>
-      <PhaseRings phase={pair.a} {...shared} />
-      {isPair && <PhaseRings phase={pair.b} {...shared} />}
+      {phases.map((ph) => (
+        <PhaseRings key={ph} phase={ph} {...shared} />
+      ))}
     </group>
   )
 }

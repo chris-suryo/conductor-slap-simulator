@@ -187,8 +187,28 @@ without clicking, use the dev `window.__store`, e.g.
   reflects this: eyebrow reads "single-pole trip", and the state cell shows an amber "1 pole open"
   (derived from `!energized && downstreamHealthyEnergized`, so it reads a full "Open" automatically
   on that final shot too) with load current still shown on the two healthy phases.
-- **Stubbed (typed, UI-disabled):** ABC three-phase
-  (`faultGeometry()` returns `isPair: false`, phases `['A','B','C']` — needs a real model + UI enable).
+- **ABC three-phase faults** (enabled in the fault-type selector): `faultGeometry()` returns
+  `isPair: false`, phases `['A','B','C']`. `runSimulation.ts` has a dedicated `isThreePhase`
+  branch: all 3 conductors carry full fault current, so every pair (A–B, B–C, A–C) repels with
+  the same I·I formula as an L-L fault. The two OUTER phases (A, C) get pushed outward because
+  both their contributions point the same way; the CENTER phase (B) gets opposing,
+  largely-cancelling contributions and stays at ~0 net force/displacement — verified live (B
+  stays exactly 0 while A/C swing symmetrically). The reported scalar frame fields
+  (`pairSeparationFt`/`clearanceFt`/`forcePerLenNPerM`) track whichever of the 3 pairs is
+  currently closest (equal currents mean closest = highest-force), the same role they play for a
+  2-conductor fault; `minClearanceFt`/slap detection are gated by a generalized
+  `hasPairwiseClearance = isPair || isThreePhase` (replacing the narrower `isPair`-only gate).
+  `computeWitnessFrames()` mirrors the same branch for the upstream comparison spans. The
+  recloser is NOT single-pole trippable for ABC (`geom.phases.length === 1` is false), so it
+  trips all 3 poles together like an L-L fault. **3D scene:** the pair-specific effect
+  components were generalized from a single `{pair, isPair}` to a `phases: Phase[]` list —
+  `MagneticFieldRings` renders one ring set per phase in the list; `ForceArrows` points each
+  conductor away from the AVERAGE position of the others (collapses to the old 2-conductor
+  formula when there are exactly 2, and naturally near-zero for a centered 3rd conductor);
+  `FaultArc` now computes its OWN pairwise clearance/contact from positions (not the global
+  scalar `frame.contact`) so 3 independent arc instances (`Span.tsx`'s `ALL_PAIRS`, filtered to
+  pairs fully inside `phases`) each flash only when THEIR pair actually touches; `FaultFireball`
+  centers on the average rest position of every faulted phase (dead-center for ABC).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video
   export. See README "Status & roadmap".
 

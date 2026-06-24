@@ -2,6 +2,8 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Phase, SimulationFrame } from '@/simulation/types'
+import { CONTACT_THRESHOLD_FT } from '@/simulation/contactDetector'
+import { inToFt } from '@/simulation/units'
 import { useScenarioStore } from '@/state/useScenarioStore'
 import { dispFtOf, frameFromArray } from '@/utils/frames'
 import { COLORS } from '@/utils/labels'
@@ -17,10 +19,16 @@ interface FaultArcProps {
   midZ: number
   frames: SimulationFrame[]
   dtMs: number
+  /**
+   * Conductor diameter (in) — used to compute THIS pair's own surface-to-surface clearance so
+   * each arc instance decides its own contact independently (needed for a 3-phase fault, where
+   * 3 separate arcs each watch their own pair rather than all sharing one global clearance).
+   */
+  diameterIn: number
 }
 
-/** A flickering arc + flash that appears only when the conductors are in contact. */
-export function FaultArc({ pair, restX, attachY, sagU, dispGain, midZ, frames, dtMs }: FaultArcProps) {
+/** A flickering arc + flash that appears only when THIS pair's own conductors are in contact. */
+export function FaultArc({ pair, restX, attachY, sagU, dispGain, midZ, frames, dtMs, diameterIn }: FaultArcProps) {
   const lightRef = useRef<THREE.PointLight>(null)
 
   const geom = useMemo(() => {
@@ -38,7 +46,13 @@ export function FaultArc({ pair, restX, attachY, sagU, dispGain, midZ, frames, d
 
   useFrame(() => {
     const frame = frameFromArray(frames, dtMs, useScenarioStore.getState().cursorMs)
-    const show = frame.contact === 'contact'
+    // Contact uses the REAL (un-exaggerated) clearance — `dispGain` below only exaggerates where
+    // the arc is drawn for legibility, it must not change whether contact is detected at all.
+    const sepRealFt = Math.abs(
+      (restX[pair.a] + dispFtOf(frame, pair.a)) - (restX[pair.b] + dispFtOf(frame, pair.b)),
+    )
+    const clearFt = sepRealFt - inToFt(diameterIn)
+    const show = clearFt <= CONTACT_THRESHOLD_FT
     line.visible = show
     if (lightRef.current) lightRef.current.visible = show
     if (!show) return

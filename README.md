@@ -156,7 +156,8 @@ For a deeper architecture explanation, see [`CLAUDE.md`](CLAUDE.md).
 
 ## Status & roadmap
 
-**Working now:** AB / BC / AC line-to-line faults, full relay + recloser sequence, the 3D
+**Working now:** AB / BC / AC line-to-line, AG / BG / CG line-to-ground, and ABC three-phase
+faults, full relay + recloser sequence, the 3D
 two-span scene set on a street (road, receding feeder, soft ground shadows, sky, and a faded
 city skyline), **resizable side panels + an "expand scene" toggle**, charts, presentation mode,
 dark/light theming, **IBM Plex typography**, and APC branding with a recreated logo (swappable
@@ -164,8 +165,6 @@ brand layer + the 3D scene code-split out of the initial bundle).
 
 **Not done yet (good next tasks):**
 
-- **AG / BG / CG ground faults** and **ABC three-phase** — typed and stubbed; the dropdown
-  options are disabled. Each needs a physics model and to be enabled in the UI.
 - **Critical-clearing-boundary overlay** on the TCC chart (and a possible visx/D3/uPlot upgrade
   for publication-grade log-log gridlines — flagged in `TccChart.tsx`).
 - **Ground-overcurrent settings** and richer per-shot recloser configuration.

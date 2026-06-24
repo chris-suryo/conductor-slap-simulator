@@ -96,6 +96,47 @@ describe('runSimulation — recloser disable routes to the substation relay back
   })
 })
 
+describe('runSimulation — three-phase faults (ABC)', () => {
+  it('protection still clears the fault on its curve', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'ABC' })
+    expect(r.numTrips).toBeGreaterThanOrEqual(1)
+    expect(r.tripTimeMs).not.toBeNull()
+    expect(r.finalState).toBe('RESTORED')
+    expect(r.slapOccurred).toBe(false)
+  })
+
+  it('the recloser is NOT single-pole trippable for a 3-phase fault (all 3 poles trip together)', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'ABC' })
+    expect(r.singlePoleTrip).toBe(false)
+    expect(r.frames.every((f) => f.downstreamHealthyEnergized === f.energized)).toBe(true)
+  })
+
+  it('the two OUTER phases (A, C) swing more than the CENTER phase (B)', () => {
+    const r = runSimulation({ ...NO_PROTECTION_SCENARIO, faultType: 'ABC' })
+    let maxOuter = 0
+    let maxCenter = 0
+    for (const f of r.frames) {
+      maxOuter = Math.max(maxOuter, Math.abs(f.dispAFt), Math.abs(f.dispCFt))
+      maxCenter = Math.max(maxCenter, Math.abs(f.dispBFt))
+    }
+    expect(maxOuter).toBeGreaterThan(0)
+    expect(maxCenter).toBeLessThan(maxOuter * 0.1) // center is symmetric — its net force ~cancels
+  })
+
+  it('NO protection: a 3-phase fault swings and slaps too, same teaching story as an L-L fault', () => {
+    const r = runSimulation({ ...NO_PROTECTION_SCENARIO, faultType: 'ABC' })
+    expect(r.slapOccurred).toBe(true)
+    expect(r.finalState).toBe('SLAP_FAULT')
+  })
+
+  it('clears LESS and swings MORE without protection than with it, same as the L-L story', () => {
+    const protectedRun = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'ABC' })
+    const unprotectedRun = runSimulation({ ...NO_PROTECTION_SCENARIO, faultType: 'ABC' })
+    expect(unprotectedRun.maxDisplacementFt).toBeGreaterThan(protectedRun.maxDisplacementFt)
+    expect(unprotectedRun.minClearanceFt).toBeLessThan(protectedRun.minClearanceFt)
+  })
+})
+
 describe('runSimulation — line-to-ground faults (AG/BG/CG)', () => {
   it.each(['AG', 'BG', 'CG'] as const)('%s: protection still clears the fault on its curve', (faultType) => {
     const r = runSimulation({ ...DEFAULT_SCENARIO, faultType })

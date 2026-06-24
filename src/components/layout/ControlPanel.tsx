@@ -16,7 +16,7 @@ const FAULT_OPTIONS = [
   { value: 'AG', label: 'A–G  (line-to-ground)' },
   { value: 'BG', label: 'B–G  (line-to-ground)' },
   { value: 'CG', label: 'C–G  (line-to-ground)' },
-  { value: 'ABC', label: '3-phase  (coming soon)', disabled: true },
+  { value: 'ABC', label: 'A–B–C  (three-phase)' },
 ]
 
 const CURVE_OPTIONS = [

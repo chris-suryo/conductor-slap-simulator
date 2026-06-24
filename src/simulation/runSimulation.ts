@@ -117,6 +117,11 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
 
   const geom = faultGeometry(scenario.faultType)
   const isPair = geom.isPair
+  const isThreePhase = geom.phases.length === 3
+  // Whether this fault type produces a live, motion-dependent pairwise clearance at all (vs. a
+  // ground fault's single conductor, whose "pair" separation is a fixed/irrelevant constant).
+  // Used to gate minClearanceFt tracking and slap detection the same way `isPair` already did.
+  const hasPairwiseClearance = isPair || isThreePhase
   const pa: Phase = geom.phases[0]
   const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
   const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
@@ -169,11 +174,21 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     // --- mechanical state at tMs ---
     const posPaAbs = restX[pa] + osc[pa].x
     const posPbAbs = restX[pb] + osc[pb].x
+    const posAAbs = restX.A + osc.A.x
+    const posBAbs = restX.B + osc.B.x
+    const posCAbs = restX.C + osc.C.x
+    const sepABm = Math.max(Math.abs(posAAbs - posBAbs), D_MIN_M)
+    const sepBCm = Math.max(Math.abs(posBAbs - posCAbs), D_MIN_M)
+    const sepACm = Math.max(Math.abs(posAAbs - posCAbs), D_MIN_M)
 
     let pairSeparationFt: number
     if (isPair) {
       const sepM = Math.max(Math.abs(posPbAbs - posPaAbs), D_MIN_M)
       pairSeparationFt = mToFt(sepM)
+    } else if (isThreePhase) {
+      // Three-phase fault: track whichever of the 3 pairs is currently closest — that's the
+      // one driving slap risk, same role `pairSeparationFt` plays for a 2-conductor fault.
+      pairSeparationFt = mToFt(Math.min(sepABm, sepBCm, sepACm))
     } else {
       pairSeparationFt = restPairSeparationFt
     }
@@ -212,6 +227,25 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
         const fPerLen = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, I, dM)
         forceN[ph] = UNFAULTED_COUPLING * forceGain * fPerLen * Math.sign(posPhAbs - posPaAbs || 1) * spanM
       }
+    } else if (snap.faultActive && isThreePhase) {
+      // Three-phase fault: all three conductors carry the full fault current, so every pair
+      // repels (same I-I formula as an L-L fault, applied to all 3 pairs). The two OUTER phases
+      // (A, C) get pushed further outward because both their contributions point the same way;
+      // the CENTER phase (B) gets opposing, largely-cancelling contributions and stays close to
+      // rest — same cancellation logic already used for a centered unfaulted phase in an A–C
+      // fault, just symmetric across all three here.
+      const fAB = forcePerLengthNPerM(I, I, sepABm)
+      const fBC = forcePerLengthNPerM(I, I, sepBCm)
+      const fAC = forcePerLengthNPerM(I, I, sepACm)
+      const fABeff = forceGain * fAB * spanM
+      const fBCeff = forceGain * fBC * spanM
+      const fACeff = forceGain * fAC * spanM
+      forceN.A = fABeff * Math.sign(posAAbs - posBAbs || -1) + fACeff * Math.sign(posAAbs - posCAbs || -1)
+      forceN.B = fABeff * Math.sign(posBAbs - posAAbs || 1) + fBCeff * Math.sign(posBAbs - posCAbs || -1)
+      forceN.C = fBCeff * Math.sign(posCAbs - posBAbs || 1) + fACeff * Math.sign(posCAbs - posAAbs || 1)
+      // The reported scalar force tracks the same (closest) pair as `pairSeparationFt` above —
+      // equal currents mean the closest pair is always the highest-force pair.
+      forcePerLen = Math.max(fAB, fBC, fAC)
     }
 
     // --- upstream (substation-side) energization ---
@@ -252,8 +286,8 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
 
     // --- summary stats ---
     maxDisplacementFt = Math.max(maxDisplacementFt, Math.abs(dispAFt), Math.abs(dispBFt), Math.abs(dispCFt))
-    if (isPair) minClearanceFt = Math.min(minClearanceFt, clearFt)
-    if (contact === 'contact' && !slapOccurred && isPair) {
+    if (hasPairwiseClearance) minClearanceFt = Math.min(minClearanceFt, clearFt)
+    if (contact === 'contact' && !slapOccurred && hasPairwiseClearance) {
       slapOccurred = true
       slapTimeMs = tMs
     }
@@ -347,6 +381,7 @@ export function computeWitnessFrames(
 
   const geom = faultGeometry(scenario.faultType)
   const isPair = geom.isPair
+  const isThreePhase = geom.phases.length === 3
   const pa: Phase = geom.phases[0]
   const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
   const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
@@ -392,9 +427,17 @@ export function computeWitnessFrames(
     if (extending) primary.frames.push(pf)
     const posPa = restX[pa] + osc[pa].x
     const posPb = restX[pb] + osc[pb].x
+    const posA = restX.A + osc.A.x
+    const posB = restX.B + osc.B.x
+    const posC = restX.C + osc.C.x
+    const sepABm = Math.max(Math.abs(posA - posB), D_MIN_M)
+    const sepBCm = Math.max(Math.abs(posB - posC), D_MIN_M)
+    const sepACm = Math.max(Math.abs(posA - posC), D_MIN_M)
     const pairSeparationFt = isPair
       ? mToFt(Math.max(Math.abs(posPb - posPa), D_MIN_M))
-      : restPairSeparationFt
+      : isThreePhase
+        ? mToFt(Math.min(sepABm, sepBCm, sepACm))
+        : restPairSeparationFt
     const clearFt = pairSeparationFt - diameterFt
     const contact = classifyClearance(clearFt)
 
@@ -446,6 +489,19 @@ export function computeWitnessFrames(
         const fcPerLen = unfaultedForceNPerM(posPc, posPa, posPb, currentMag)
         forceN[pc] = UNFAULTED_COUPLING * EDU_FORCE_GAIN * fcPerLen * spanM
       }
+    } else if (faultActive && isThreePhase) {
+      // Mirrors the main loop's three-phase branch (see runSimulation()) for this comparison
+      // span — same all-pairs-repel physics, just at this span's own length/mechanics.
+      const fAB = forcePerLengthNPerM(currentMag, currentMag, sepABm)
+      const fBC = forcePerLengthNPerM(currentMag, currentMag, sepBCm)
+      const fAC = forcePerLengthNPerM(currentMag, currentMag, sepACm)
+      const fABeff = EDU_FORCE_GAIN * fAB * spanM
+      const fBCeff = EDU_FORCE_GAIN * fBC * spanM
+      const fACeff = EDU_FORCE_GAIN * fAC * spanM
+      forceN.A = fABeff * Math.sign(posA - posB || -1) + fACeff * Math.sign(posA - posC || -1)
+      forceN.B = fABeff * Math.sign(posB - posA || 1) + fBCeff * Math.sign(posB - posC || -1)
+      forceN.C = fBCeff * Math.sign(posC - posB || 1) + fACeff * Math.sign(posC - posA || 1)
+      forcePerLen = Math.max(fAB, fBC, fAC)
     }
 
     // Upstream spans are energized by the substation breaker: they stay live and carry reduced

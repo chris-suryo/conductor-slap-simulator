@@ -40,14 +40,16 @@ interface Puff {
  * "something just burned here," distinct from the mid-span conductor-slap arc in FaultArc.tsx.
  */
 export function FaultFireball({
-  pair,
+  phases,
   restX,
   attachY,
   z,
   frames,
   dtMs,
 }: {
-  pair: { a: Phase; b: Phase }
+  /** Every conductor involved in the fault — the fireball centers on their average position
+   * (a single faulted phase for AG/BG/CG, the midpoint for an L-L pair, dead-center for ABC). */
+  phases: Phase[]
   restX: Record<Phase, number>
   attachY: number
   z: number
@@ -59,7 +61,7 @@ export function FaultFireball({
   const lightRef = useRef<THREE.PointLight>(null)
   const smokeGroupRef = useRef<THREE.Group>(null)
 
-  const midX = (restX[pair.a] + restX[pair.b]) / 2
+  const midX = phases.reduce((sum, ph) => sum + restX[ph], 0) / phases.length
 
   const puffs = useMemo<Puff[]>(() => {
     const tex = getPuffTexture()
