@@ -101,17 +101,17 @@ function SceneContent({ g }: { g: Geometry }) {
       <Recloser z={zP2} restX={g.restX} />
       {/* Source / substation marker at P0. */}
       <SourceMarker z={zP0} />
-      {/* Line-to-line fault fireball/smoke at the remote end of the faulted span (P3). */}
-      {g.isPair && (
-        <FaultFireball
-          pair={g.pair}
-          restX={g.restX}
-          attachY={ATTACH_Y}
-          z={zP3}
-          frames={result.frames}
-          dtMs={result.dtMs}
-        />
-      )}
+      {/* Fault fireball/smoke at the remote end of the faulted span (P3). For a line-to-ground
+          fault `g.pair` collapses to the single faulted phase (a === b), so this also covers
+          AG/BG/CG correctly with no extra branching. */}
+      <FaultFireball
+        pair={g.pair}
+        restX={g.restX}
+        attachY={ATTACH_Y}
+        z={zP3}
+        frames={result.frames}
+        dtMs={result.dtMs}
+      />
     </group>
   )
 }

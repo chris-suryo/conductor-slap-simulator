@@ -6,6 +6,36 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 21: AG/BG/CG line-to-ground faults enabled
+
+**User request:** add line-to-ground faults. Turned out the model already handled them safely —
+`faultGeometry()` in `runSimulation.ts` has returned `{ phases: [p], isPair: false }` for AG/BG/CG
+since early on, and the orchestrator's force step (`if (snap.faultActive && isPair)`) already
+skips applying any magnetic force when `isPair` is false, so a ground fault correctly produces
+zero conductor motion in this model (no return-path conductor to repel against) — pedagogically
+honest: real single-phase-to-ground faults don't slap conductors the way an L-L fault does. The
+work was three small changes:
+1. `ControlPanel.tsx`: removed `disabled: true` from the AG/BG/CG fault-type options and
+   relabeled them "(line-to-ground)" instead of "(coming soon)". ABC (3-phase) stays disabled —
+   out of scope for this request.
+2. `DistributionScene.tsx`: the fault fireball/smoke at the remote end of the faulted span was
+   gated on `g.isPair`, so ground faults showed NO visual at all. Removed the gate — `g.pair`
+   already collapses to `{ a: faultedPhase, b: faultedPhase }` when `!isPair` (existing logic,
+   unchanged), so `FaultFireball`'s `midX = (restX[a] + restX[b]) / 2` naturally resolves to the
+   single faulted conductor's position with no new branching needed. Verified via a temporary
+   debug probe (added then removed) that for an AG fault `pair = {a:'A', b:'A'}` and
+   `midX = -3.5` (phase A's rest position) — correct.
+3. `runSimulation.test.ts`: added a new `describe('line-to-ground faults (AG/BG/CG)')` block —
+   6 new tests (`it.each` over AG/BG/CG) asserting (a) protection still trips and restores
+   normally (current-magnitude-based, phase-agnostic) and (b) zero displacement/force/slap for
+   the whole run under the no-protection preset (proving the model never applies a pairwise
+   force for a non-pair fault).
+Verified live: all three ground-fault types selectable and not disabled in the UI, each runs to
+`RESTORED` with `maxDisplacementFt: 0`; no console errors. 61 tests green (was 55), typecheck
+clean.
+
+---
+
 ## 2026-06-23 — Session 20: charts too flat/small — restored aspect-ratio sizing
 
 **User feedback:** the 3 charts (force, clearance, TCC) had become too small/flat to actually

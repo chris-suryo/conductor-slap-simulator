@@ -13,9 +13,9 @@ const FAULT_OPTIONS = [
   { value: 'AB', label: 'A–B  (line-to-line)' },
   { value: 'BC', label: 'B–C  (line-to-line)' },
   { value: 'AC', label: 'A–C  (line-to-line)' },
-  { value: 'AG', label: 'A–G  (coming soon)', disabled: true },
-  { value: 'BG', label: 'B–G  (coming soon)', disabled: true },
-  { value: 'CG', label: 'C–G  (coming soon)', disabled: true },
+  { value: 'AG', label: 'A–G  (line-to-ground)' },
+  { value: 'BG', label: 'B–G  (line-to-ground)' },
+  { value: 'CG', label: 'C–G  (line-to-ground)' },
   { value: 'ABC', label: '3-phase  (coming soon)', disabled: true },
 ]
 

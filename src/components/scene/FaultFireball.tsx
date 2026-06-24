@@ -93,14 +93,14 @@ export function FaultFireball({
 
     if (fireRef.current) {
       fireRef.current.position.set(midX, y, z)
-      fireRef.current.scale.setScalar(0.55 + Math.random() * 0.35)
+      fireRef.current.scale.setScalar(2.2 + Math.random() * 1.2)
     }
     if (fireMatRef.current) {
       fireMatRef.current.color.set(Math.random() < 0.5 ? '#ffb33d' : COLORS.arc)
     }
     if (lightRef.current) {
       lightRef.current.position.set(midX, y, z)
-      lightRef.current.intensity = 7 + Math.random() * 9
+      lightRef.current.intensity = 14 + Math.random() * 14
     }
 
     // Each puff rises, expands, and fades out, then resets to loop continuously.
@@ -127,7 +127,7 @@ export function FaultFireball({
         <sphereGeometry args={[0.45, 10, 10]} />
         <meshBasicMaterial ref={fireMatRef} color={COLORS.arc} toneMapped={false} transparent opacity={0.9} />
       </mesh>
-      <pointLight ref={lightRef} color={COLORS.arc} distance={20} intensity={0} visible={false} />
+      <pointLight ref={lightRef} color={COLORS.arc} distance={32} intensity={0} visible={false} />
       <group ref={smokeGroupRef} visible={false}>
         {puffs.map((p, i) => (
           <primitive key={i} object={p.sprite} />

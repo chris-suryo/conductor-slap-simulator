@@ -151,7 +151,7 @@ without clicking, use the dev `window.__store`, e.g.
 
 ## What's done vs. open
 
-- **Done:** AB/BC/AC faults, two-device protection (downstream G&W recloser + upstream substation
+- **Done:** AB/BC/AC line-to-line faults + AG/BG/CG line-to-ground faults, two-device protection (downstream G&W recloser + upstream substation
   relay) with SEL US curves and fault-location coordination, full reclose sequence, dual TCC chart,
   fault-simulation UX (magnitudes, location, reclose outcome, Run/Stop), **three-span 3D scene**
   (source "S" marker → G&W recloser + cabinet at P2 → faulted span 3 with a fireball + rising
@@ -166,9 +166,14 @@ without clicking, use the dev `window.__store`, e.g.
   (Phase 6):** if the still-energized upstream span clashes after the recloser clears the original
   fault, that strikes a NEW fault (sized by the "Induced upstream fault" control) that the
   substation relay clears on its own curve, de-energizing the whole feeder; surfaced via
-  `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card.
-- **Stubbed (typed, UI-disabled):** AG/BG/CG ground faults, ABC three-phase
-  (`faultGeometry()` returns `isPair: false` for these — they need a real model + UI enable).
+  `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card. **AG/BG/CG ground
+  faults** (enabled in the fault-type selector): `faultGeometry()` returns `isPair: false` and a
+  single faulted phase — `runSimulation`'s force step is gated on `isPair`, so a ground fault
+  correctly produces NO pairwise magnetic repulsion/slap in this model (protection still trips
+  normally on current magnitude); the 3D fault fireball/smoke (`FaultFireball.tsx`) renders at
+  that single conductor since `pair.a === pair.b` collapses cleanly to one position.
+- **Stubbed (typed, UI-disabled):** ABC three-phase
+  (`faultGeometry()` returns `isPair: false`, phases `['A','B','C']` — needs a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video
   export. See README "Status & roadmap".
 

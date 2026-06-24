@@ -95,3 +95,26 @@ describe('runSimulation — recloser disable routes to the substation relay back
     expect(enabled.tripTimeMs! / 1000).toBeCloseTo(disabled.tripTimeMs! / 1000, 3)
   })
 })
+
+describe('runSimulation — line-to-ground faults (AG/BG/CG)', () => {
+  it.each(['AG', 'BG', 'CG'] as const)('%s: protection still clears the fault on its curve', (faultType) => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType })
+    expect(r.numTrips).toBeGreaterThanOrEqual(1)
+    expect(r.tripTimeMs).not.toBeNull()
+    expect(r.finalState).toBe('RESTORED')
+  })
+
+  it.each(['AG', 'BG', 'CG'] as const)('%s: a single faulted conductor has no pairwise repulsion, so it never slaps', (faultType) => {
+    // No protection so the fault rides through for a while — if a ground fault produced a
+    // pairwise force the way a line-to-line one does, this would swing and could slap.
+    const r = runSimulation({ ...NO_PROTECTION_SCENARIO, faultType })
+    for (const f of r.frames) {
+      expect(f.dispAFt).toBe(0)
+      expect(f.dispBFt).toBe(0)
+      expect(f.dispCFt).toBe(0)
+      expect(f.forcePerLenNPerM).toBe(0)
+    }
+    expect(r.slapOccurred).toBe(false)
+    expect(r.maxDisplacementFt).toBe(0)
+  })
+})
