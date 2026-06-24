@@ -25,7 +25,7 @@ export function DisplacementChart() {
   return (
     <Card className="force-light flex flex-col">
       <CardHeader eyebrow="Physics" title="Conductor clearance" />
-      <div className="aspect-[4/5] w-full">
+      <div className="aspect-[6/5] w-full">
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <defs>
