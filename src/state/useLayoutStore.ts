@@ -12,14 +12,16 @@ import { clamp } from '@/utils/math'
 
 const STORAGE_KEY = 'csim-layout'
 
-// Both side panels widened (~1.5x) for legibility, balanced against the center 3D scene so it
-// still gets a comfortable share of the window (verified live at 1280 and 1920px). Note this
-// only affects the Physics/Protection setup view — Presentation mode hides both asides entirely
-// (see Shell.tsx's `chromeHidden`), so the scene always gets the full window there regardless.
-export const LEFT_MIN = 390
-export const LEFT_MAX = 780
-export const RIGHT_MIN = 360
-export const RIGHT_MAX = 720
+// Drag range opened up wide so you can resize each side panel to whatever you personally find
+// comfortable — drag the divider between a panel and the scene (or Tab to it + arrow keys).
+// Defaults sit at a balanced middle ground; MIN/MAX just bound the drag, they don't dictate a
+// "correct" width. Note this only affects the Physics/Protection setup view — Presentation mode
+// hides both asides entirely (see Shell.tsx's `chromeHidden`), so the scene always gets the full
+// window there regardless of these widths.
+export const LEFT_MIN = 280
+export const LEFT_MAX = 1000
+export const RIGHT_MIN = 260
+export const RIGHT_MAX = 900
 const LEFT_DEFAULT = 520
 const RIGHT_DEFAULT = 480
 
