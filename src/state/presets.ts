@@ -77,6 +77,7 @@ export const DEFAULT_SCENARIO: Scenario = {
   voltageClassKv: 12.47,
   spanLengthFt: 250,
   secondSpanLengthFt: 180,
+  firstSpanLengthFt: 150,
   phaseSpacingFt: 3.5,
   sagFt: 4,
   faultCurrentA: 7500,

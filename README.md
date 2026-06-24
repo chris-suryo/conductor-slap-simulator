@@ -29,8 +29,10 @@ Three one-click presets demonstrate the contrast:
 | **No protection** | Fault rides through the swing; conductors slap on the rebound → **conductor slap**. |
 | **Reclose into slap** | A slow-curve trip builds a big swing; the reclose re-strikes → **lockout**. |
 
-It also draws **two spans from a center pole** so you can show a long span slapping while a
-shorter adjacent span stays clear.
+It also draws **three spans** (SPAN 1 nearest the source, SPAN 2 upstream of the recloser, SPAN 3
+faulted) and independently tracks each one's clearance/force — a long span can slap while a
+shorter one stays clear, and a slap on SPAN 1 or SPAN 2 strikes its own new fault that the
+substation relay has to clear.
 
 ---
 
@@ -127,7 +129,7 @@ src/
     motionSolver     Spring-mass-damper conductor swing
     recloserSequence Trip → open → dead time → reclose → restore / re-strike / lockout
     contactDetector  safe / near-miss / slap classification
-    runSimulation    Ties it together; also computes the second (witness) span
+    runSimulation    Ties it together; also computes the upstream SPAN 1 / SPAN 2 motion
     constants.ts     ⭐ The hand-tuned "educational" constants live here
   state/             Zustand store + scenario presets + the playback clock
   theme/             Theme tokens (dark/light), applyTheme, brand layer (brand.ts)

@@ -6,7 +6,7 @@ import type {
   SimulationFrame,
   SimulationResult,
 } from '@/simulation/types'
-import { computeWitnessFrames, runSimulation } from '@/simulation/runSimulation'
+import { computeUpstreamSpanFrames, runSimulation } from '@/simulation/runSimulation'
 import { clamp } from '@/utils/math'
 import { DEFAULT_SCENARIO, PRESETS, cloneScenario } from './presets'
 
@@ -15,8 +15,10 @@ export type ViewMode = 'physics' | 'protection' | 'presentation'
 interface ScenarioState {
   scenario: Scenario
   result: SimulationResult
-  /** Motion of the adjacent comparison span (same length grid as `result.frames`). */
-  witnessFrames: SimulationFrame[]
+  /** Motion of SPAN 1 (nearest the source), aligned 1:1 with `result.frames`. */
+  span1Frames: SimulationFrame[]
+  /** Motion of SPAN 2 (between the mid pole and the recloser), aligned 1:1 with `result.frames`. */
+  span2Frames: SimulationFrame[]
   mode: ViewMode
 
   // Playback
@@ -51,16 +53,18 @@ interface ScenarioState {
 export const useScenarioStore = create<ScenarioState>((set, get) => {
   const rerun = (scenario: Scenario, presetId: string | null) => {
     const result = runSimulation(scenario)
-    const witnessFrames = computeWitnessFrames(scenario, scenario.secondSpanLengthFt, result)
-    set({ scenario, result, witnessFrames, cursorMs: 0, playing: true, activePresetId: presetId })
+    const { span1Frames, span2Frames } = computeUpstreamSpanFrames(scenario, result)
+    set({ scenario, result, span1Frames, span2Frames, cursorMs: 0, playing: true, activePresetId: presetId })
   }
 
   const initialResult = runSimulation(DEFAULT_SCENARIO)
+  const initialUpstream = computeUpstreamSpanFrames(DEFAULT_SCENARIO, initialResult)
 
   return {
     scenario: cloneScenario(DEFAULT_SCENARIO),
     result: initialResult,
-    witnessFrames: computeWitnessFrames(DEFAULT_SCENARIO, DEFAULT_SCENARIO.secondSpanLengthFt, initialResult),
+    span1Frames: initialUpstream.span1Frames,
+    span2Frames: initialUpstream.span2Frames,
     mode: 'physics',
 
     cursorMs: 0,

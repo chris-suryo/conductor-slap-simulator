@@ -87,10 +87,13 @@ export type FaultLocation = 'downstream' | 'upstream'
 
 export interface Scenario {
   voltageClassKv: number
-  /** Length of the faulted span (the instrumented one driving protection & charts). */
+  /** Length of SPAN 3 — the faulted span (downstream of the recloser, furthest from the
+   * source) — the instrumented one driving protection & charts. */
   spanLengthFt: number
-  /** Length of the adjacent comparison span on the other side of the center pole. */
+  /** Length of SPAN 2 (between the mid pole and the recloser, upstream of the recloser). */
   secondSpanLengthFt: number
+  /** Length of SPAN 1 (nearest the source, upstream of SPAN 2). */
+  firstSpanLengthFt: number
   phaseSpacingFt: number
   sagFt: number
   faultCurrentA: number
@@ -207,10 +210,11 @@ export interface TimelineEvent {
 }
 
 /**
- * A conductor slap on the still-energized upstream span (after the recloser clears the original
- * downstream fault, the source side keeps carrying load — see split energization) strikes a NEW
- * fault upstream of the recloser, cleared by the substation relay on its own curve. Populated by
- * `computeWitnessFrames` after the fact (null if no such slap occurred this run).
+ * A conductor slap on a still-energized UPSTREAM span (SPAN 1 or SPAN 2 — after the recloser
+ * clears the original downstream fault, the source side keeps carrying load, see split
+ * energization) strikes a NEW fault upstream of the recloser, cleared by the substation relay on
+ * its own curve. Populated by `computeUpstreamSpanFrames` after the fact (null if no such slap
+ * occurred this run).
  */
 export interface UpstreamFaultEvent {
   /** Sim time (ms) the upstream span clashed while still energized, striking the new fault. */
@@ -218,6 +222,8 @@ export interface UpstreamFaultEvent {
   /** Substation relay's trip decision time (ms) relative to the strike; null if it never trips. */
   tripTimeMs: number | null
   finalState: FinalState
+  /** Which upstream span actually struck the fault (1 = nearest source, 2 = nearest recloser). */
+  originSpan: 1 | 2
 }
 
 export interface SimulationResult {

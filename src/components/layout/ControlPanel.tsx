@@ -267,17 +267,17 @@ export function ControlPanel() {
             onChange={(v) => setFaultType(v as FaultType)}
           />
           <Slider
-            label="Faulted span length"
+            label="Span 3 length (faulted)"
             value={scenario.spanLengthFt}
             min={150}
             max={400}
             step={10}
             unit="ft"
             onChange={(v) => patchScenario({ spanLengthFt: v })}
-            hint="Longer spans swing more — and slap more readily."
+            hint="Downstream of the recloser, furthest from the source. Longer spans swing more — and slap more readily."
           />
           <Slider
-            label="Adjacent span length"
+            label="Span 2 length"
             value={scenario.secondSpanLengthFt}
             min={100}
             max={400}
@@ -285,7 +285,18 @@ export function ControlPanel() {
             unit="ft"
             onChange={(v) => patchScenario({ secondSpanLengthFt: v })}
             fill={COLORS.slate}
-            hint="The comparison span on the other side of the center pole."
+            hint="Between the mid pole and the recloser. Can slap and strike its own upstream fault."
+          />
+          <Slider
+            label="Span 1 length"
+            value={scenario.firstSpanLengthFt}
+            min={100}
+            max={400}
+            step={10}
+            unit="ft"
+            onChange={(v) => patchScenario({ firstSpanLengthFt: v })}
+            fill={COLORS.slate}
+            hint="Nearest the source. Can slap and strike its own upstream fault."
           />
           <Slider
             label="Phase spacing"

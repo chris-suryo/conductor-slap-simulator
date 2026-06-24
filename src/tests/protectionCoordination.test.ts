@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeWitnessFrames, runSimulation } from '@/simulation/runSimulation'
+import { computeUpstreamSpanFrames, runSimulation } from '@/simulation/runSimulation'
 import { relayDecisionMs, clearTimeMs } from '@/simulation/protection'
 import { shotConfig } from '@/simulation/recloserSequence'
 import { DEFAULT_INDUCED_FAULT_A, RELAY_PROCESSING_MS } from '@/simulation/constants'
@@ -126,31 +126,59 @@ describe('fault-sim — deterministic reclose outcome', () => {
   })
 })
 
-describe('induced upstream fault — a slap on the still-energized upstream span', () => {
-  // A long, saggy adjacent span swings far enough on the post-clear rebound to clash while the
+describe('induced upstream fault — a slap on a still-energized upstream span (SPAN 1 or SPAN 2)', () => {
+  // A long, saggy span swings far enough on the post-clear rebound to clash while the
   // substation breaker is still keeping it energized (split energization) — striking a new fault
-  // upstream of the recloser that the recloser itself can never see or clear.
-  const SLAPPING_SCENARIO = {
+  // upstream of the recloser that the recloser itself can never see or clear. Each variant makes
+  // ONLY ONE of the two upstream spans long enough to actually clash, so the test can pin down
+  // which span is responsible.
+  const BASE_SLAPPING_SCENARIO = {
     ...DEFAULT_SCENARIO,
     faultCurrentA: 10000,
     faultLocation: 'downstream' as const,
     protectionEnabled: true,
     sagFt: 10,
   }
-  const WITNESS_SPAN_FT = 400
+  // Shrink the OTHER upstream span in each variant — at this current a default-length span can
+  // independently clash too (longer spans swing further but also swing SLOWER, so a shorter span
+  // can race ahead and reach contact first); a short span keeps it from racing the intended one.
+  const SPAN1_SLAPS = { ...BASE_SLAPPING_SCENARIO, firstSpanLengthFt: 400, secondSpanLengthFt: 100 }
+  const SPAN2_SLAPS = { ...BASE_SLAPPING_SCENARIO, secondSpanLengthFt: 400, firstSpanLengthFt: 100 }
 
-  it('strikes a new fault that the substation relay clears on its own curve', () => {
-    const r = runSimulation(SLAPPING_SCENARIO)
-    computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+  it('SPAN 1: strikes a new fault that the substation relay clears on its own curve', () => {
+    const r = runSimulation(SPAN1_SLAPS)
+    computeUpstreamSpanFrames(SPAN1_SLAPS, r)
 
     expect(r.upstreamFaultEvent).not.toBeNull()
+    expect(r.upstreamFaultEvent!.originSpan).toBe(1)
     const expectedMs = relayDecisionMs(DEFAULT_INDUCED_FAULT_A, DEFAULT_SUBSTATION_RELAY, 'inverse')!
     expect(r.upstreamFaultEvent!.tripTimeMs! / 1000).toBeCloseTo(expectedMs / 1000, 2)
   })
 
+  it('SPAN 2: strikes a new fault that the substation relay clears on its own curve', () => {
+    const r = runSimulation(SPAN2_SLAPS)
+    computeUpstreamSpanFrames(SPAN2_SLAPS, r)
+
+    expect(r.upstreamFaultEvent).not.toBeNull()
+    expect(r.upstreamFaultEvent!.originSpan).toBe(2)
+    const expectedMs = relayDecisionMs(DEFAULT_INDUCED_FAULT_A, DEFAULT_SUBSTATION_RELAY, 'inverse')!
+    expect(r.upstreamFaultEvent!.tripTimeMs! / 1000).toBeCloseTo(expectedMs / 1000, 2)
+  })
+
+  it('a SPAN 1 fault starves SPAN 2 of current (radial feeder — nothing downstream of the fault)', () => {
+    const r = runSimulation(SPAN1_SLAPS)
+    const { span2Frames } = computeUpstreamSpanFrames(SPAN1_SLAPS, r)
+
+    const atMs = r.upstreamFaultEvent!.atMs
+    // SPAN 2 never sees the INDUCED fault current (only ever the original downstream one, or
+    // none) once SPAN 1's fault is the live one — it's electrically downstream of that point.
+    const induced = span2Frames.filter((f) => f.tMs >= atMs && f.faultActive)
+    expect(induced.every((f) => f.currentA !== DEFAULT_INDUCED_FAULT_A)).toBe(true)
+  })
+
   it('de-energizes the whole feeder (no split) while the induced fault is being cleared', () => {
-    const r = runSimulation(SLAPPING_SCENARIO)
-    computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+    const r = runSimulation(SPAN1_SLAPS)
+    computeUpstreamSpanFrames(SPAN1_SLAPS, r)
 
     const atMs = r.upstreamFaultEvent!.atMs
     const afterStrike = r.frames.filter((f) => f.tMs >= atMs)
@@ -160,23 +188,23 @@ describe('induced upstream fault — a slap on the still-energized upstream span
   })
 
   it('extends the timeline so the relay\'s own reclose sequence isn\'t cut off mid-way', () => {
-    const r = runSimulation(SLAPPING_SCENARIO)
-    const witnessFrames = computeWitnessFrames(SLAPPING_SCENARIO, WITNESS_SPAN_FT, r)
+    const r = runSimulation(SPAN1_SLAPS)
+    const { span1Frames } = computeUpstreamSpanFrames(SPAN1_SLAPS, r)
 
-    expect(witnessFrames.length).toBe(r.frames.length)
+    expect(span1Frames.length).toBe(r.frames.length)
     expect(r.durationMs).toBe(r.frames[r.frames.length - 1].tMs)
     expect(['RESTORED', 'LOCKOUT']).toContain(r.upstreamFaultEvent!.finalState)
   })
 
-  it('does nothing when the upstream span never actually clashes (default adjacent span)', () => {
+  it('does nothing when neither upstream span actually clashes (default lengths)', () => {
     const r = runSimulation({ ...DEFAULT_SCENARIO, faultCurrentA: 5000, faultLocation: 'downstream' })
-    computeWitnessFrames({ ...DEFAULT_SCENARIO, faultCurrentA: 5000, faultLocation: 'downstream' }, DEFAULT_SCENARIO.secondSpanLengthFt, r)
+    computeUpstreamSpanFrames({ ...DEFAULT_SCENARIO, faultCurrentA: 5000, faultLocation: 'downstream' }, r)
     expect(r.upstreamFaultEvent).toBeNull()
   })
 
   it('is not armed for an upstream-located primary fault (relay is already engaged on it)', () => {
-    const r = runSimulation({ ...SLAPPING_SCENARIO, faultLocation: 'upstream' })
-    computeWitnessFrames({ ...SLAPPING_SCENARIO, faultLocation: 'upstream' }, WITNESS_SPAN_FT, r)
+    const r = runSimulation({ ...SPAN1_SLAPS, faultLocation: 'upstream' })
+    computeUpstreamSpanFrames({ ...SPAN1_SLAPS, faultLocation: 'upstream' }, r)
     expect(r.upstreamFaultEvent).toBeNull()
   })
 })

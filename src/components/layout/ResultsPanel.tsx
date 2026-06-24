@@ -168,8 +168,8 @@ export function ResultsPanel() {
         {result.upstreamFaultEvent && (
           <p className="mb-3 rounded-lg border border-fault/40 bg-fault/10 px-3 py-2 text-xs leading-relaxed text-fault">
             Induced upstream fault at {fmtMs(result.upstreamFaultEvent.atMs)} — the still-energized
-            upstream span clashed and struck a new fault the recloser can&apos;t see. Substation
-            relay{' '}
+            SPAN {result.upstreamFaultEvent.originSpan} clashed and struck a new fault the recloser
+            can&apos;t see. Substation relay{' '}
             {result.upstreamFaultEvent.tripTimeMs == null
               ? 'did not trip.'
               : `tripped in ${fmtMs(result.upstreamFaultEvent.tripTimeMs)} (${result.upstreamFaultEvent.finalState.toLowerCase()}).`}

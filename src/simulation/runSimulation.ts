@@ -92,6 +92,123 @@ function unfaultedForceNPerM(posC: number, posA: number, posB: number, faultA: n
   return fA * Math.sign(posC - posA || 1) + fB * Math.sign(posC - posB || 1)
 }
 
+/**
+ * Live surface-to-surface clearance + center-to-center separation for ONE span's own oscillator
+ * state, generalized over pair / ground / three-phase fault geometries. Shared by the main loop
+ * and the upstream comparison spans (SPAN 1 / SPAN 2) so every span's clearance is computed by
+ * the exact same physics, just against its own conductor positions.
+ */
+function spanClearanceFt(
+  osc: Record<Phase, OscillatorState>,
+  restX: Record<Phase, number>,
+  geom: FaultGeometry,
+  restPairSeparationFt: number,
+  diameterFt: number,
+): { pairSeparationFt: number; clearFt: number } {
+  const isPair = geom.isPair
+  const isThreePhase = geom.phases.length === 3
+  const pa: Phase = geom.phases[0]
+  const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
+  const posPaAbs = restX[pa] + osc[pa].x
+  const posPbAbs = restX[pb] + osc[pb].x
+
+  let pairSeparationFt: number
+  if (isPair) {
+    pairSeparationFt = mToFt(Math.max(Math.abs(posPbAbs - posPaAbs), D_MIN_M))
+  } else if (isThreePhase) {
+    const posAAbs = restX.A + osc.A.x
+    const posBAbs = restX.B + osc.B.x
+    const posCAbs = restX.C + osc.C.x
+    const sepABm = Math.max(Math.abs(posAAbs - posBAbs), D_MIN_M)
+    const sepBCm = Math.max(Math.abs(posBAbs - posCAbs), D_MIN_M)
+    const sepACm = Math.max(Math.abs(posAAbs - posCAbs), D_MIN_M)
+    pairSeparationFt = mToFt(Math.min(sepABm, sepBCm, sepACm))
+  } else {
+    pairSeparationFt = restPairSeparationFt
+  }
+  return { pairSeparationFt, clearFt: pairSeparationFt - diameterFt }
+}
+
+/**
+ * Magnetic force on each conductor of ONE span given its own oscillator state, generalized over
+ * pair / ground / three-phase fault geometries — the same physics as `spanClearanceFt`'s sibling
+ * branching, shared by the main loop and the upstream comparison spans.
+ */
+function faultForces(
+  geom: FaultGeometry,
+  osc: Record<Phase, OscillatorState>,
+  restX: Record<Phase, number>,
+  faultActive: boolean,
+  currentA: number,
+  forceGain: number,
+  spanM: number,
+): { forceN: Record<Phase, number>; forcePerLen: number } {
+  const forceN: Record<Phase, number> = { A: 0, B: 0, C: 0 }
+  let forcePerLen = 0
+  if (!faultActive) return { forceN, forcePerLen }
+
+  const isPair = geom.isPair
+  const isThreePhase = geom.phases.length === 3
+  const pa: Phase = geom.phases[0]
+  const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
+  const posPaAbs = restX[pa] + osc[pa].x
+  const posPbAbs = restX[pb] + osc[pb].x
+
+  if (isPair) {
+    const sepM = Math.max(Math.abs(posPbAbs - posPaAbs), D_MIN_M)
+    forcePerLen = forcePerLengthNPerM(currentA, currentA, sepM)
+    const fEff = forceGain * forcePerLen * spanM
+    // Antiparallel fault currents repel: push each conductor away from the other.
+    forceN[pa] = fEff * Math.sign(posPaAbs - posPbAbs || -1)
+    forceN[pb] = fEff * Math.sign(posPbAbs - posPaAbs || 1)
+    // Unfaulted phase: a much smaller force (load current in the faulted field).
+    const pc = unfaultedPhase(pa, pb)
+    if (pc) {
+      const posPcAbs = restX[pc] + osc[pc].x
+      const fcPerLen = unfaultedForceNPerM(posPcAbs, posPaAbs, posPbAbs, currentA)
+      forceN[pc] = UNFAULTED_COUPLING * forceGain * fcPerLen * spanM
+    }
+  } else if (geom.phases.length === 1) {
+    // Ground fault (single faulted conductor): there's no pairwise repulsion (no second
+    // high-current conductor to repel against), but the two HEALTHY phases still carry load
+    // current sitting in the faulted phase's field, so each feels a small coupling force —
+    // same physics/de-rating as the unfaulted phase in an L-L fault, just from one source.
+    for (const ph of ['A', 'B', 'C'] as Phase[]) {
+      if (ph === pa) continue
+      const posPhAbs = restX[ph] + osc[ph].x
+      const dM = Math.max(Math.abs(posPhAbs - posPaAbs), D_MIN_M)
+      const fPerLen = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, currentA, dM)
+      forceN[ph] = UNFAULTED_COUPLING * forceGain * fPerLen * Math.sign(posPhAbs - posPaAbs || 1) * spanM
+    }
+  } else if (isThreePhase) {
+    // Three-phase fault: all three conductors carry the full fault current, so every pair
+    // repels (same I-I formula as an L-L fault, applied to all 3 pairs). The two OUTER phases
+    // (A, C) get pushed further outward because both their contributions point the same way;
+    // the CENTER phase (B) gets opposing, largely-cancelling contributions and stays close to
+    // rest — same cancellation logic already used for a centered unfaulted phase in an A–C
+    // fault, just symmetric across all three here.
+    const posAAbs = restX.A + osc.A.x
+    const posBAbs = restX.B + osc.B.x
+    const posCAbs = restX.C + osc.C.x
+    const sepABm = Math.max(Math.abs(posAAbs - posBAbs), D_MIN_M)
+    const sepBCm = Math.max(Math.abs(posBAbs - posCAbs), D_MIN_M)
+    const sepACm = Math.max(Math.abs(posAAbs - posCAbs), D_MIN_M)
+    const fAB = forcePerLengthNPerM(currentA, currentA, sepABm)
+    const fBC = forcePerLengthNPerM(currentA, currentA, sepBCm)
+    const fAC = forcePerLengthNPerM(currentA, currentA, sepACm)
+    const fABeff = forceGain * fAB * spanM
+    const fBCeff = forceGain * fBC * spanM
+    const fACeff = forceGain * fAC * spanM
+    forceN.A = fABeff * Math.sign(posAAbs - posBAbs || -1) + fACeff * Math.sign(posAAbs - posCAbs || -1)
+    forceN.B = fABeff * Math.sign(posBAbs - posAAbs || 1) + fBCeff * Math.sign(posBAbs - posCAbs || -1)
+    forceN.C = fBCeff * Math.sign(posCAbs - posBAbs || 1) + fACeff * Math.sign(posCAbs - posAAbs || 1)
+    // The reported scalar force tracks the same (closest) pair as `pairSeparationFt` — equal
+    // currents mean the closest pair is always the highest-force pair.
+    forcePerLen = Math.max(fAB, fBC, fAC)
+  }
+  return { forceN, forcePerLen }
+}
+
 /** Optional tuning overrides — used by the calibration harness and tests. */
 export interface SimTuning {
   forceGain?: number
@@ -172,81 +289,14 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
 
   for (let tMs = 0; tMs <= SIM_HORIZON_MS; tMs += dtMs) {
     // --- mechanical state at tMs ---
-    const posPaAbs = restX[pa] + osc[pa].x
-    const posPbAbs = restX[pb] + osc[pb].x
-    const posAAbs = restX.A + osc.A.x
-    const posBAbs = restX.B + osc.B.x
-    const posCAbs = restX.C + osc.C.x
-    const sepABm = Math.max(Math.abs(posAAbs - posBAbs), D_MIN_M)
-    const sepBCm = Math.max(Math.abs(posBAbs - posCAbs), D_MIN_M)
-    const sepACm = Math.max(Math.abs(posAAbs - posCAbs), D_MIN_M)
-
-    let pairSeparationFt: number
-    if (isPair) {
-      const sepM = Math.max(Math.abs(posPbAbs - posPaAbs), D_MIN_M)
-      pairSeparationFt = mToFt(sepM)
-    } else if (isThreePhase) {
-      // Three-phase fault: track whichever of the 3 pairs is currently closest — that's the
-      // one driving slap risk, same role `pairSeparationFt` plays for a 2-conductor fault.
-      pairSeparationFt = mToFt(Math.min(sepABm, sepBCm, sepACm))
-    } else {
-      pairSeparationFt = restPairSeparationFt
-    }
-    const clearFt = pairSeparationFt - diameterFt
+    const { pairSeparationFt, clearFt } = spanClearanceFt(osc, restX, geom, restPairSeparationFt, diameterFt)
     const contact = classifyClearance(clearFt)
 
     // --- protection FSM (re-strike if conductors clashed during this dead time) ---
     const snap = controller.step(tMs, clearFt, thresholdFt, slappedDuringDeadTime)
 
     // --- magnetic force during energized faults ---
-    const forceN: Record<Phase, number> = { A: 0, B: 0, C: 0 }
-    let forcePerLen = 0
-    if (snap.faultActive && isPair) {
-      const sepM = Math.max(Math.abs(posPbAbs - posPaAbs), D_MIN_M)
-      forcePerLen = forcePerLengthNPerM(I, I, sepM)
-      const fEff = forceGain * forcePerLen * spanM
-      // Antiparallel fault currents repel: push each conductor away from the other.
-      forceN[pa] = fEff * Math.sign(posPaAbs - posPbAbs || -1)
-      forceN[pb] = fEff * Math.sign(posPbAbs - posPaAbs || 1)
-      // Unfaulted phase: a much smaller force (load current in the faulted field).
-      const pc = unfaultedPhase(pa, pb)
-      if (pc) {
-        const posPcAbs = restX[pc] + osc[pc].x
-        const fcPerLen = unfaultedForceNPerM(posPcAbs, posPaAbs, posPbAbs, I)
-        forceN[pc] = UNFAULTED_COUPLING * forceGain * fcPerLen * spanM
-      }
-    } else if (snap.faultActive && !isPair && geom.phases.length === 1) {
-      // Ground fault (single faulted conductor): there's no pairwise repulsion (no second
-      // high-current conductor to repel against), but the two HEALTHY phases still carry load
-      // current sitting in the faulted phase's field, so each feels a small coupling force —
-      // same physics/de-rating as the unfaulted phase in an L-L fault, just from one source.
-      for (const ph of ['A', 'B', 'C'] as Phase[]) {
-        if (ph === pa) continue
-        const posPhAbs = restX[ph] + osc[ph].x
-        const dM = Math.max(Math.abs(posPhAbs - posPaAbs), D_MIN_M)
-        const fPerLen = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, I, dM)
-        forceN[ph] = UNFAULTED_COUPLING * forceGain * fPerLen * Math.sign(posPhAbs - posPaAbs || 1) * spanM
-      }
-    } else if (snap.faultActive && isThreePhase) {
-      // Three-phase fault: all three conductors carry the full fault current, so every pair
-      // repels (same I-I formula as an L-L fault, applied to all 3 pairs). The two OUTER phases
-      // (A, C) get pushed further outward because both their contributions point the same way;
-      // the CENTER phase (B) gets opposing, largely-cancelling contributions and stays close to
-      // rest — same cancellation logic already used for a centered unfaulted phase in an A–C
-      // fault, just symmetric across all three here.
-      const fAB = forcePerLengthNPerM(I, I, sepABm)
-      const fBC = forcePerLengthNPerM(I, I, sepBCm)
-      const fAC = forcePerLengthNPerM(I, I, sepACm)
-      const fABeff = forceGain * fAB * spanM
-      const fBCeff = forceGain * fBC * spanM
-      const fACeff = forceGain * fAC * spanM
-      forceN.A = fABeff * Math.sign(posAAbs - posBAbs || -1) + fACeff * Math.sign(posAAbs - posCAbs || -1)
-      forceN.B = fABeff * Math.sign(posBAbs - posAAbs || 1) + fBCeff * Math.sign(posBAbs - posCAbs || -1)
-      forceN.C = fBCeff * Math.sign(posCAbs - posBAbs || 1) + fACeff * Math.sign(posCAbs - posAAbs || 1)
-      // The reported scalar force tracks the same (closest) pair as `pairSeparationFt` above —
-      // equal currents mean the closest pair is always the highest-force pair.
-      forcePerLen = Math.max(fAB, fBC, fAC)
-    }
+    const { forceN, forcePerLen } = faultForces(geom, osc, restX, snap.faultActive, I, forceGain, spanM)
 
     // --- upstream (substation-side) energization ---
     // With the recloser engaged, the substation breaker stays closed, so the section from it to
@@ -337,43 +387,54 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     contactThresholdFt: thresholdFt,
     numTrips,
     singlePoleTrip,
-    // Populated by computeWitnessFrames (run after this), which mutates this same result object —
-    // see useScenarioStore's rerun(): runSimulation() then computeWitnessFrames(scenario, ..., result).
+    // Populated by computeUpstreamSpanFrames (run after this), which mutates this same result
+    // object — see useScenarioStore's rerun(): runSimulation() then computeUpstreamSpanFrames(...).
     upstreamFaultEvent: null,
   }
 }
 
-/**
- * Compute the motion of an ADJACENT (comparison) span that shares the same fault current
- * and energization timeline as the primary faulted span, but has its own length. Longer
- * spans swing more; this is how the demo shows one span slapping while a shorter one does
- * not. Returns a frame series aligned 1:1 with the primary result's frames.
- *
- * Models a SECOND, independent fault: this upstream span stays energized (carrying load) even
- * after the recloser clears the original downstream fault — split energization. If it clashes
- * while still live, that's a fresh bolted fault upstream of the recloser, sized by
- * `scenario.inducedFaultCurrentA`. From that instant, a second `ProtectionController` for the
- * SUBSTATION RELAY takes over this span's own energization (own pickup/curve/TD/reclose
- * schedule) — and, since the substation breaker is upstream of everything, it also overrides
- * `primary.frames[i].upstreamEnergized`/`.energized` from that point on (mutated in place; the
- * caller already holds this same `primary` object and stores it after this call returns). Only
- * armed for downstream-primary scenarios — an upstream-primary fault already has the relay
- * actively engaged on the original event.
- */
 /**
  * Generous cap (ms) on how far an induced upstream fault's own reclose schedule can extend the
  * timeline past the primary run's own horizon (longest relay dead time + a settling tail).
  */
 const MAX_UPSTREAM_EXTENSION_MS = 13000
 
-export function computeWitnessFrames(
+/**
+ * Compute the motion of BOTH upstream comparison spans — SPAN 1 (nearest the source) and SPAN 2
+ * (between the mid pole and the recloser, upstream of it) — each with its OWN length/mechanics,
+ * so each has its own independent clearance and magnetic force (mirroring the primary/SPAN 3
+ * physics via the shared `spanClearanceFt`/`faultForces` helpers). Returns two frame series
+ * aligned 1:1 with the primary (SPAN 3) result's frames.
+ *
+ * Both spans stay energized (carrying load) after the recloser clears the original downstream
+ * fault — split energization. If EITHER clashes while still live, that's a fresh bolted fault
+ * upstream of the recloser, sized by `scenario.inducedFaultCurrentA`; a single shared
+ * `ProtectionController` for the SUBSTATION RELAY (the one device that can see/clear it — it's
+ * upstream of both spans) takes over from there, and overrides
+ * `primary.frames[i].upstreamEnergized`/`.energized` from that point on (mutated in place; the
+ * caller already holds this same `primary` object and stores it after this call returns).
+ *
+ * Whichever span clashes FIRST is the induced fault's origin (SPAN 1 checked first as a
+ * deterministic tie-break on a simultaneous clash — vanishingly rare in practice). SPAN 1, being
+ * upstream of SPAN 2 too, keeps carrying the induced current regardless of which span is the
+ * origin; SPAN 2 only carries it if SPAN 2 itself is the origin — a fault AT SPAN 1 starves
+ * everything downstream of it (including SPAN 2) of current, the same radial-feeder logic
+ * already governing the original downstream fault.
+ *
+ * Only armed for downstream-primary scenarios with a real pairwise/three-phase fault type — a
+ * ground fault's single conductor has no pairwise force to slap with (see `runSimulation()`),
+ * and an upstream-located primary fault already has the relay actively engaged on the original
+ * event.
+ */
+export function computeUpstreamSpanFrames(
   scenario: Scenario,
-  spanLengthFt: number,
   primary: SimulationResult,
-): SimulationFrame[] {
+): { span1Frames: SimulationFrame[]; span2Frames: SimulationFrame[] } {
   const conductor = getConductor(scenario.conductorTypeId)
-  const mp = computeMechParams({ ...scenario, spanLengthFt }, conductor)
-  const spanM = ftToM(spanLengthFt)
+  const mp1 = computeMechParams({ ...scenario, spanLengthFt: scenario.firstSpanLengthFt }, conductor)
+  const mp2 = computeMechParams({ ...scenario, spanLengthFt: scenario.secondSpanLengthFt }, conductor)
+  const spanM1 = ftToM(scenario.firstSpanLengthFt)
+  const spanM2 = ftToM(scenario.secondSpanLengthFt)
   const spacingM = ftToM(scenario.phaseSpacingFt)
   const diameterFt = conductorDiameterFt(conductor)
   const I = scenario.faultCurrentA
@@ -382,26 +443,24 @@ export function computeWitnessFrames(
   const geom = faultGeometry(scenario.faultType)
   const isPair = geom.isPair
   const isThreePhase = geom.phases.length === 3
+  const hasPairwiseClearance = isPair || isThreePhase
   const pa: Phase = geom.phases[0]
   const pb: Phase = isPair ? geom.phases[1] : geom.phases[0]
   const restPairSeparationFt = mToFt(Math.abs(restX[pb] - restX[pa])) || scenario.phaseSpacingFt
 
-  const osc: Record<Phase, OscillatorState> = {
-    A: { x: 0, v: 0 },
-    B: { x: 0, v: 0 },
-    C: { x: 0, v: 0 },
-  }
+  const osc1: Record<Phase, OscillatorState> = { A: { x: 0, v: 0 }, B: { x: 0, v: 0 }, C: { x: 0, v: 0 } }
+  const osc2: Record<Phase, OscillatorState> = { A: { x: 0, v: 0 }, B: { x: 0, v: 0 }, C: { x: 0, v: 0 } }
   const dtMs = primary.dtMs
   const dtS = dtMs / 1000
-  const out: SimulationFrame[] = []
+  const span1Frames: SimulationFrame[] = []
+  const span2Frames: SimulationFrame[] = []
 
-  // Only armed when the recloser is actually engaged (split energization keeping this span
-  // independently live) — if it's disabled, the relay is already the operating device for the
-  // ORIGINAL fault, and a second overlapping fault on the same relay isn't physically sensible.
-  const upstreamFaultArmed = scenario.faultLocation === 'downstream' && scenario.protectionEnabled && isPair
+  const upstreamFaultArmed =
+    scenario.faultLocation === 'downstream' && scenario.protectionEnabled && hasPairwiseClearance
   const inducedI = scenario.inducedFaultCurrentA ?? DEFAULT_INDUCED_FAULT_A
   let upstreamController: ProtectionController | null = null
   let upstreamEventAtMs: number | null = null
+  let originSpan: 1 | 2 | null = null
   let upstreamPrevState: ProtectionState | null = null
   let upstreamSlappedDuringDeadTime = false
   let upstreamTerminalAtMs: number | null = null
@@ -425,41 +484,39 @@ export function computeWitnessFrames(
       ? { ...settledPf, tMs: settledPf.tMs + (i - originalFrameCount + 1) * dtMs }
       : primary.frames[i]
     if (extending) primary.frames.push(pf)
-    const posPa = restX[pa] + osc[pa].x
-    const posPb = restX[pb] + osc[pb].x
-    const posA = restX.A + osc.A.x
-    const posB = restX.B + osc.B.x
-    const posC = restX.C + osc.C.x
-    const sepABm = Math.max(Math.abs(posA - posB), D_MIN_M)
-    const sepBCm = Math.max(Math.abs(posB - posC), D_MIN_M)
-    const sepACm = Math.max(Math.abs(posA - posC), D_MIN_M)
-    const pairSeparationFt = isPair
-      ? mToFt(Math.max(Math.abs(posPb - posPa), D_MIN_M))
-      : isThreePhase
-        ? mToFt(Math.min(sepABm, sepBCm, sepACm))
-        : restPairSeparationFt
-    const clearFt = pairSeparationFt - diameterFt
-    const contact = classifyClearance(clearFt)
+
+    // --- each span's own LIVE positional clearance (independent of fault current/state) ---
+    const clear1 = spanClearanceFt(osc1, restX, geom, restPairSeparationFt, diameterFt)
+    const clear2 = spanClearanceFt(osc2, restX, geom, restPairSeparationFt, diameterFt)
+    const contact1 = classifyClearance(clear1.clearFt)
+    const contact2 = classifyClearance(clear2.clearFt)
 
     // --- strike / advance the induced upstream fault (substation relay's own FSM) ---
-    if (upstreamFaultArmed && !upstreamController && pf.upstreamEnergized && contact === 'contact') {
-      upstreamController = new ProtectionController({
-        protectionEnabled: true,
-        faultCurrentA: inducedI,
-        settings: scenario.substationRelay,
-        faultStartMs: pf.tMs,
-      })
-      upstreamEventAtMs = pf.tMs
+    if (upstreamFaultArmed && !upstreamController && pf.upstreamEnergized) {
+      if (contact1 === 'contact') originSpan = 1
+      else if (contact2 === 'contact') originSpan = 2
+      if (originSpan != null) {
+        upstreamController = new ProtectionController({
+          protectionEnabled: true,
+          faultCurrentA: inducedI,
+          settings: scenario.substationRelay,
+          faultStartMs: pf.tMs,
+        })
+        upstreamEventAtMs = pf.tMs
+      }
     }
-    const upSnap = upstreamController?.step(pf.tMs, clearFt, CONTACT_THRESHOLD_FT, upstreamSlappedDuringDeadTime)
+    // Feed the controller the ORIGIN span's own live clearance — that's the physical fault
+    // location its reclose-vs-restrike decision actually depends on.
+    const originClearFt = originSpan === 2 ? clear2.clearFt : clear1.clearFt
+    const upSnap = upstreamController?.step(pf.tMs, originClearFt, CONTACT_THRESHOLD_FT, upstreamSlappedDuringDeadTime)
     if (upSnap) {
       if (upSnap.state === 'DEAD_TIME') {
         if (upstreamPrevState !== 'DEAD_TIME') upstreamSlappedDuringDeadTime = false
-        if (contact === 'contact') upstreamSlappedDuringDeadTime = true
+        if (classifyClearance(originClearFt) === 'contact') upstreamSlappedDuringDeadTime = true
       }
       upstreamPrevState = upSnap.state
       if (upSnap.terminal && upstreamTerminalAtMs === null) upstreamTerminalAtMs = pf.tMs
-      // The substation breaker now governs this span's energization — and, since it's upstream
+      // The substation breaker now governs both spans' energization — and, since it's upstream
       // of the recloser too, the primary (downstream) frame at this same tick as well. Surface
       // the induced fault as a fault (not load current) while the relay is actively timing it out.
       primary.frames[i] = {
@@ -472,83 +529,87 @@ export function computeWitnessFrames(
     }
     const pfEff = primary.frames[i]
 
-    const faultActive = upSnap ? upSnap.faultActive : pf.faultActive
-    const currentMag = upSnap?.faultActive ? inducedI : I
+    // --- which spans actually carry current this tick ---
+    // The ORIGINAL downstream fault (before the recloser clears it) flows through BOTH upstream
+    // spans (they're in series toward the recloser) — `pf.faultActive` already reflects that for
+    // both, no origin distinction needed. Once an INDUCED fault fires, SPAN 1 keeps carrying it
+    // regardless of origin; SPAN 2 only carries it if SPAN 2 itself is the origin.
+    const inducedActive = upSnap?.faultActive ?? false
+    const span1FaultActive = pf.faultActive || inducedActive
+    const span1Current = inducedActive ? inducedI : I
+    const span2FaultActive = pf.faultActive || (inducedActive && originSpan === 2)
+    const span2Current = inducedActive && originSpan === 2 ? inducedI : I
 
-    const forceN: Record<Phase, number> = { A: 0, B: 0, C: 0 }
-    let forcePerLen = 0
-    if (faultActive && isPair) {
-      const sepM = Math.max(Math.abs(posPb - posPa), D_MIN_M)
-      forcePerLen = forcePerLengthNPerM(currentMag, currentMag, sepM)
-      const fEff = EDU_FORCE_GAIN * forcePerLen * spanM
-      forceN[pa] = fEff * Math.sign(posPa - posPb || -1)
-      forceN[pb] = fEff * Math.sign(posPb - posPa || 1)
-      const pc = unfaultedPhase(pa, pb)
-      if (pc) {
-        const posPc = restX[pc] + osc[pc].x
-        const fcPerLen = unfaultedForceNPerM(posPc, posPa, posPb, currentMag)
-        forceN[pc] = UNFAULTED_COUPLING * EDU_FORCE_GAIN * fcPerLen * spanM
-      }
-    } else if (faultActive && isThreePhase) {
-      // Mirrors the main loop's three-phase branch (see runSimulation()) for this comparison
-      // span — same all-pairs-repel physics, just at this span's own length/mechanics.
-      const fAB = forcePerLengthNPerM(currentMag, currentMag, sepABm)
-      const fBC = forcePerLengthNPerM(currentMag, currentMag, sepBCm)
-      const fAC = forcePerLengthNPerM(currentMag, currentMag, sepACm)
-      const fABeff = EDU_FORCE_GAIN * fAB * spanM
-      const fBCeff = EDU_FORCE_GAIN * fBC * spanM
-      const fACeff = EDU_FORCE_GAIN * fAC * spanM
-      forceN.A = fABeff * Math.sign(posA - posB || -1) + fACeff * Math.sign(posA - posC || -1)
-      forceN.B = fABeff * Math.sign(posB - posA || 1) + fBCeff * Math.sign(posB - posC || -1)
-      forceN.C = fBCeff * Math.sign(posC - posB || 1) + fACeff * Math.sign(posC - posA || 1)
-      forcePerLen = Math.max(fAB, fBC, fAC)
-    }
+    const mech1 = faultForces(geom, osc1, restX, span1FaultActive, span1Current, EDU_FORCE_GAIN, spanM1)
+    const mech2 = faultForces(geom, osc2, restX, span2FaultActive, span2Current, EDU_FORCE_GAIN, spanM2)
 
     // Upstream spans are energized by the substation breaker: they stay live and carry reduced
     // load current once the recloser opens, full load once everything is back to normal, and the
     // induced-fault magnitude while that secondary fault is active.
-    const upstreamCurrentA = faultActive
-      ? currentMag
-      : pfEff.energized
-        ? NOMINAL_LOAD_CURRENT_A
-        : pfEff.upstreamEnergized
-          ? REDUCED_LOAD_CURRENT_A
-          : 0
+    const upstreamCurrentA = (currentMag: number, faultActive: boolean) =>
+      faultActive
+        ? currentMag
+        : pfEff.energized
+          ? NOMINAL_LOAD_CURRENT_A
+          : pfEff.upstreamEnergized
+            ? REDUCED_LOAD_CURRENT_A
+            : 0
 
-    out.push({
+    span1Frames.push({
       tMs: pfEff.tMs,
       state: upSnap ? upSnap.state : pfEff.state,
       energized: pfEff.upstreamEnergized,
       upstreamEnergized: pfEff.upstreamEnergized,
       downstreamHealthyEnergized: pfEff.upstreamEnergized,
-      faultActive,
-      currentA: upstreamCurrentA,
-      dispAFt: mToFt(osc.A.x),
-      dispBFt: mToFt(osc.B.x),
-      dispCFt: mToFt(osc.C.x),
-      pairSeparationFt,
-      clearanceFt: clearFt,
-      forcePerLenNPerM: forcePerLen,
-      contact,
+      faultActive: span1FaultActive,
+      currentA: upstreamCurrentA(span1Current, span1FaultActive),
+      dispAFt: mToFt(osc1.A.x),
+      dispBFt: mToFt(osc1.B.x),
+      dispCFt: mToFt(osc1.C.x),
+      pairSeparationFt: clear1.pairSeparationFt,
+      clearanceFt: clear1.clearFt,
+      forcePerLenNPerM: mech1.forcePerLen,
+      contact: contact1,
+      shot: upSnap ? upSnap.shot : pfEff.shot,
+    })
+    span2Frames.push({
+      tMs: pfEff.tMs,
+      state: upSnap ? upSnap.state : pfEff.state,
+      energized: pfEff.upstreamEnergized,
+      upstreamEnergized: pfEff.upstreamEnergized,
+      downstreamHealthyEnergized: pfEff.upstreamEnergized,
+      faultActive: span2FaultActive,
+      currentA: upstreamCurrentA(span2Current, span2FaultActive),
+      dispAFt: mToFt(osc2.A.x),
+      dispBFt: mToFt(osc2.B.x),
+      dispCFt: mToFt(osc2.C.x),
+      pairSeparationFt: clear2.pairSeparationFt,
+      clearanceFt: clear2.clearFt,
+      forcePerLenNPerM: mech2.forcePerLen,
+      contact: contact2,
       shot: upSnap ? upSnap.shot : pfEff.shot,
     })
 
-    osc.A = stepOscillator(osc.A, forceN.A, mp, dtS)
-    osc.B = stepOscillator(osc.B, forceN.B, mp, dtS)
-    osc.C = stepOscillator(osc.C, forceN.C, mp, dtS)
+    osc1.A = stepOscillator(osc1.A, mech1.forceN.A, mp1, dtS)
+    osc1.B = stepOscillator(osc1.B, mech1.forceN.B, mp1, dtS)
+    osc1.C = stepOscillator(osc1.C, mech1.forceN.C, mp1, dtS)
+    osc2.A = stepOscillator(osc2.A, mech2.forceN.A, mp2, dtS)
+    osc2.B = stepOscillator(osc2.B, mech2.forceN.B, mp2, dtS)
+    osc2.C = stepOscillator(osc2.C, mech2.forceN.C, mp2, dtS)
   }
 
-  primary.upstreamFaultEvent = buildUpstreamFaultEvent(upstreamController, upstreamEventAtMs)
+  primary.upstreamFaultEvent = buildUpstreamFaultEvent(upstreamController, upstreamEventAtMs, originSpan)
   primary.durationMs = primary.frames[primary.frames.length - 1]?.tMs ?? primary.durationMs
 
-  return out
+  return { span1Frames, span2Frames }
 }
 
 function buildUpstreamFaultEvent(
   controller: ProtectionController | null,
   atMs: number | null,
+  originSpan: 1 | 2 | null,
 ): UpstreamFaultEvent | null {
-  if (!controller || atMs == null) return null
+  if (!controller || atMs == null || originSpan == null) return null
   const events = controller.events
   const firstTrip = events.find((e) => e.kind === 'trip')
   const numTrips = events.filter((e) => e.kind === 'trip').length
@@ -556,6 +617,7 @@ function buildUpstreamFaultEvent(
     atMs,
     tripTimeMs: firstTrip ? firstTrip.tMs - atMs : null,
     finalState: resolveFinalState(controller, true, numTrips),
+    originSpan,
   }
 }
 

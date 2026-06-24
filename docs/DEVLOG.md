@@ -6,6 +6,72 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-24 — Session 26: slap detection on ALL THREE spans, not just the faulted one
+
+**User-reported gap:** conductor slap was only analyzed on SPAN 3 (the faulted span) — but the
+scene has 3 spans, and a slap on either upstream span (SPAN 1 nearest the source, SPAN 2 upstream
+of the recloser) while still energized is just as real a hazard: it strikes a NEW fault the
+recloser can't see, which the substation relay has to clear. Previously there was only ONE
+generic "witness" span (`computeWitnessFrames`), and both upstream spans in the 3D scene
+literally shared its single frame series — SPAN 1 and SPAN 2 had no independent clearance, force,
+or chance to induce a fault at all.
+
+**Model (`runSimulation.ts`):**
+- Extracted the main loop's pairwise/ground/three-phase clearance and force math into two shared
+  pure helpers — `spanClearanceFt()` and `faultForces()` — used by the main loop AND the new
+  upstream-span function, so every span (1, 2, 3) runs the exact same physics against its own
+  conductor positions. Refactored the main loop to call them; verified bit-identical output (all
+  65 then-existing tests passed unchanged before any new code was added).
+- Replaced `computeWitnessFrames(scenario, spanLengthFt, primary)` (one generic span, explicit
+  length override) with `computeUpstreamSpanFrames(scenario, primary)`, which runs ONE combined
+  loop tracking TWO independent oscillator sets (`scenario.firstSpanLengthFt` for SPAN 1,
+  `scenario.secondSpanLengthFt` for SPAN 2) against a SINGLE shared upstream
+  `ProtectionController` (there's only one substation breaker). Whichever span reaches contact
+  FIRST while still energized becomes the induced fault's `originSpan: 1 | 2` (new field on
+  `UpstreamFaultEvent`); SPAN 1 is checked first as a deterministic tie-break on a simultaneous
+  clash. A combined single-pass design was chosen over calling the old per-span function twice
+  because that has a real bug: each call reads `primary.frames[i].faultActive`, and after the
+  first call mutates it, the second call would silently inherit the first span's fault state and
+  current magnitude — wrong physics, not just an edge case.
+- **Origin-aware current flow** (the part that actually needed new physics, not just plumbing):
+  during the ORIGINAL downstream fault, both upstream spans carry the same fault current (they're
+  in series toward the recloser) — no origin needed for that part. Once an INDUCED fault fires,
+  SPAN 1 (upstream of SPAN 2 either way) keeps carrying it regardless of which span is the origin;
+  SPAN 2 only carries it if SPAN 2 itself is the origin — a fault AT SPAN 1 electrically starves
+  everything downstream of it (including SPAN 2), the same radial-feeder logic already governing
+  the original downstream fault story. Verified live: with SPAN 1 as the origin, SPAN 2's frames
+  show `faultActive: false` / normal 200 A load throughout — it never sees the induced current.
+- `Scenario.firstSpanLengthFt` (SPAN 1's own length, default 150 ft) is new; `secondSpanLengthFt`
+  (SPAN 2) and `spanLengthFt` (SPAN 3) are unchanged but their doc comments now name which span
+  each one is.
+
+**UI:** `ControlPanel.tsx` — relabeled the span-length sliders "Span 1/2/3 length" with hints
+naming each span's role; added the new SPAN 1 slider. `ResultsPanel.tsx`'s induced-fault banner
+now names the origin span ("the still-energized SPAN 1 clashed..."). `DistributionScene.tsx` —
+SPAN 1 and SPAN 2 now render their OWN independent frame series (`span1Frames`/`span2Frames` from
+the store, replacing the single shared `witnessFrames`) with effects (force arrows, field rings,
+slap arc) turned ON for both, since either can now genuinely arc/slap; SPAN 1's render length
+also switched from a fudge-factor off SPAN 2's length to its own real `firstSpanLengthFt`.
+`useScenarioStore.ts` — `witnessFrames` field replaced by `span1Frames`/`span2Frames`.
+
+**Tests:** migrated the "induced upstream fault" describe block in `protectionCoordination.test.ts`
+off the removed `computeWitnessFrames` onto `computeUpstreamSpanFrames`; split it into a SPAN 1
+variant and a SPAN 2 variant (each lengthens only the span under test and SHRINKS the other to
+100 ft, since — discovered while writing these tests — a default-length 180 ft span can already
+independently clash at the high test current, racing ahead of whichever span was deliberately
+lengthened; a longer span swings further but also swings SLOWER, so the shorter one can win the
+race to contact first). Added a dedicated test asserting SPAN 2 never carries the induced current
+when SPAN 1 is the origin. 72 tests green (was 70), typecheck and production build clean.
+
+**Verified live:** drove the store to manufacture a SPAN 1 slap (`firstSpanLengthFt: 400,
+secondSpanLengthFt: 100`) — `upstreamFaultEvent.originSpan: 1`, relay trips in ~249 ms, SPAN 2
+stays on normal 200 A load throughout (never sees the induced current). Drove the opposite case
+(SPAN 2 slaps) — `originSpan: 2`, and confirmed SPAN 1's frames DO show the induced 6000 A
+current during that window (it's upstream of SPAN 2, so it's in the current path either way). No
+console errors with the 3D scene rendering both spans' live effects.
+
+---
+
 ## 2026-06-23 — Session 25: ABC three-phase faults — real physics + UI enable + 3D generalization
 
 **Closes the last stub.** ABC was typed (`faultGeometry()` already returned `{ phases: ['A','B',

@@ -53,9 +53,10 @@ certified engineering tool. Keep that framing; don't present the physics as exac
 - **`recloserSequence.ts`** — the `ProtectionController` FSM: NORMAL → FAULT_ACTIVE →
   RELAY_TIMING → TRIP → BREAKER_OPENING → DEAD_TIME → RECLOSE → (RESTORED | re-strike | LOCKOUT).
   A slap during the dead time forces a re-strike on reclose.
-- **`runSimulation.ts`** — the orchestrator loop, plus `computeWitnessFrames()` which solves a
-  **second adjacent span's** motion using the faulted span's energization timeline (so a long
-  span can slap while a shorter one doesn't).
+- **`runSimulation.ts`** — the orchestrator loop, plus `computeUpstreamSpanFrames()` which solves
+  BOTH upstream spans' (SPAN 1, SPAN 2) own independent motion using the faulted span's
+  energization timeline (so a long span can slap while a shorter one doesn't) — either can clash
+  and strike its own induced fault back onto the substation relay; see "What's done" below.
 - **`constants.ts`** — ⭐ all the **hand-tuned educational constants** (force gain, damping,
   swing-period references, contact threshold). This is the calibration knob. Changing these
   changes whether scenarios slap; always re-run the tests after.
@@ -163,10 +164,21 @@ without clicking, use the dev `window.__store`, e.g.
   curve, time dial); the "Protection enabled" toggle is **recloser-only** — disabling it routes a
   downstream fault to the substation relay's own curve, which de-energizes the whole feeder (no
   upstream/downstream split), matching how a real backup relay behaves. **Induced upstream fault
-  (Phase 6):** if the still-energized upstream span clashes after the recloser clears the original
-  fault, that strikes a NEW fault (sized by the "Induced upstream fault" control) that the
-  substation relay clears on its own curve, de-energizing the whole feeder; surfaced via
-  `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card. **AG/BG/CG ground
+  on SPAN 1 or SPAN 2 (Phase 6, multi-span):** slap detection runs on ALL THREE spans, not just
+  the faulted one — `computeUpstreamSpanFrames()` independently models SPAN 1 (`firstSpanLengthFt`,
+  nearest the source) and SPAN 2 (`secondSpanLengthFt`, between the mid pole and the recloser)
+  with their own mechanics/clearance/force (via the shared `spanClearanceFt`/`faultForces`
+  helpers also used by the SPAN 3/primary main loop), each independently capable of clashing while
+  still energized after the recloser clears the original fault (split energization). Whichever
+  span clashes FIRST strikes a NEW fault (sized by the "Induced upstream fault" control,
+  `originSpan: 1 | 2` on `UpstreamFaultEvent`) that a single shared substation-relay
+  `ProtectionController` clears on its own curve, de-energizing the whole feeder. Current-flow is
+  origin-aware: SPAN 1 (upstream of SPAN 2 either way) always carries the induced current once it
+  fires; SPAN 2 only carries it if SPAN 2 itself is the origin — a SPAN 1 fault starves SPAN 2 of
+  current, same radial-feeder logic already governing the original downstream fault. Surfaced via
+  `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card naming the origin span;
+  the store exposes `span1Frames`/`span2Frames` (read by `DistributionScene.tsx`, effects ON for
+  both — either can genuinely arc/slap now). **AG/BG/CG ground
   faults** (enabled in the fault-type selector): `faultGeometry()` returns `isPair: false` and a
   single faulted phase, so there's no pairwise repulsion (no second high-current conductor to
   repel against — the faulted phase itself never moves in this model). The two HEALTHY phases
@@ -198,7 +210,8 @@ without clicking, use the dev `window.__store`, e.g.
   currently closest (equal currents mean closest = highest-force), the same role they play for a
   2-conductor fault; `minClearanceFt`/slap detection are gated by a generalized
   `hasPairwiseClearance = isPair || isThreePhase` (replacing the narrower `isPair`-only gate).
-  `computeWitnessFrames()` mirrors the same branch for the upstream comparison spans. The
+  `computeUpstreamSpanFrames()` mirrors the same branch (via the shared `faultForces()` helper)
+  for the SPAN 1 / SPAN 2 upstream comparison spans. The
   recloser is NOT single-pole trippable for ABC (`geom.phases.length === 1` is false), so it
   trips all 3 poles together like an L-L fault. **3D scene:** the pair-specific effect
   components were generalized from a single `{pair, isPair}` to a `phases: Phase[]` list —

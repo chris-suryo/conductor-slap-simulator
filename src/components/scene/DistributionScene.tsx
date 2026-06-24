@@ -55,7 +55,8 @@ interface Geometry {
 function SceneContent({ g }: { g: Geometry }) {
   const groupRef = useRef<THREE.Group>(null)
   const result = useScenarioStore((s) => s.result)
-  const witnessFrames = useScenarioStore((s) => s.witnessFrames)
+  const span1Frames = useScenarioStore((s) => s.span1Frames)
+  const span2Frames = useScenarioStore((s) => s.span2Frames)
 
   useFrame(() => {
     const st = useScenarioStore.getState()
@@ -90,10 +91,12 @@ function SceneContent({ g }: { g: Geometry }) {
         </group>
       ))}
 
-      {/* Upstream spans (context, toward the substation) — clean conductors, no effect overlays. */}
-      <Span z0={zP0} z1={zP1} frames={witnessFrames} showEffects={false} {...shared} />
-      <Span z0={zP1} z1={zP2} frames={witnessFrames} showEffects={false} {...shared} />
-      {/* Faulted / instrumented span (downstream of the recloser). */}
+      {/* SPAN 1 (nearest the source) and SPAN 2 (upstream of the recloser) — each independently
+          modeled (own length/clearance/force); effects are ON for both since either can slap and
+          strike its own induced fault (see computeUpstreamSpanFrames). */}
+      <Span z0={zP0} z1={zP1} frames={span1Frames} {...shared} />
+      <Span z0={zP1} z1={zP2} frames={span2Frames} {...shared} />
+      {/* SPAN 3 — faulted / instrumented span (downstream of the recloser). */}
       <Span z0={zP2} z1={zP3} frames={result.frames} {...shared} />
 
       {/* G&W recloser + control cabinet at P2. */}
@@ -128,10 +131,10 @@ export function DistributionScene() {
     const restX: Record<Phase, number> = { A: -spacingU, B: 0, C: spacingU }
     const geom = faultGeometry(scenario.faultType)
     const conductor = getConductor(scenario.conductorTypeId)
-    // Three spans, source -> remote: span1, span2 (upstream context) then the faulted span3.
+    // Three spans, source -> remote: SPAN 1, SPAN 2 (upstream) then the faulted SPAN 3.
     const s3U = clamp(scenario.spanLengthFt * SPAN_RENDER, 26, 46) // faulted (downstream, hero)
     const s2U = clamp(scenario.secondSpanLengthFt * SPAN_RENDER, 18, 38)
-    const s1U = clamp(scenario.secondSpanLengthFt * SPAN_RENDER * 0.85, 16, 34)
+    const s1U = clamp(scenario.firstSpanLengthFt * SPAN_RENDER, 16, 34)
     const total = s1U + s2U + s3U
     const start = -total / 2 // re-center the line on z = 0
     const poleZs: [number, number, number, number] = [
@@ -160,6 +163,7 @@ export function DistributionScene() {
     scenario.conductorTypeId,
     scenario.spanLengthFt,
     scenario.secondSpanLengthFt,
+    scenario.firstSpanLengthFt,
   ])
 
   return (
