@@ -39,7 +39,7 @@ import { getConductor } from './conductorCatalog'
 import { computeMechParams, stepOscillator, type OscillatorState } from './motionSolver'
 import { forcePerLengthNPerM } from './magneticForces'
 import { CONTACT_THRESHOLD_FT, classifyClearance, conductorDiameterFt } from './contactDetector'
-import { ProtectionController } from './recloserSequence'
+import { isLockout, ProtectionController } from './recloserSequence'
 
 interface FaultGeometry {
   phases: Phase[]
@@ -209,9 +209,12 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     // breaker is the only thing that can clear the fault, so the whole line de-energizes together
     // (recloser disabled, or an upstream fault).
     const upstreamEnergized = recloserEngaged ? true : snap.energized
-    // The two healthy phases never lose power under single-pole tripping (only the faulted pole
-    // opens); otherwise this section's energization is all-or-nothing, same as `energized`.
-    const downstreamHealthyEnergized = singlePoleTrip ? true : snap.energized
+    // The two healthy phases never lose power on a single-pole trip — EXCEPT the final operation
+    // before lockout: a real recloser converts to three-pole on the last trip (it's about to give
+    // up and isolate the whole circuit, not stay unbalanced indefinitely), so all 3 phases open
+    // together there, same as a non-single-pole-capable device.
+    const isFinalShot = isLockout(snap.shot, operatingDevice.shotsToLockout)
+    const downstreamHealthyEnergized = singlePoleTrip && !isFinalShot ? true : snap.energized
 
     // --- record frame at tMs ---
     const dispAFt = mToFt(osc.A.x)

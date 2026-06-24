@@ -175,10 +175,13 @@ without clicking, use the dev `window.__store`, e.g.
   recloser single-pole trips ground faults:** `SimulationResult.singlePoleTrip` is true whenever
   the RECLOSER (not the substation relay/breaker, which has no such capability and always trips
   three-pole) is clearing an AG/BG/CG fault — only the faulted phase opens; the other two stay
-  energized throughout (`SimulationFrame.downstreamHealthyEnergized`, distinct from `energized`,
-  which still tracks the faulted pole specifically). The Live-status Recloser card reflects this:
-  eyebrow reads "single-pole trip", and the state cell shows an amber "1 pole open" instead of a
-  full "Open", with load current still shown on the two healthy phases.
+  energized (`SimulationFrame.downstreamHealthyEnergized`, distinct from `energized`, which still
+  tracks the faulted pole specifically) for every shot EXCEPT the final one before lockout, where
+  the recloser converts to a three-pole trip (`isLockout(snap.shot, shotsToLockout)` in
+  `runSimulation.ts`) rather than staying unbalanced indefinitely. The Live-status Recloser card
+  reflects this: eyebrow reads "single-pole trip", and the state cell shows an amber "1 pole open"
+  (derived from `!energized && downstreamHealthyEnergized`, so it reads a full "Open" automatically
+  on that final shot too) with load current still shown on the two healthy phases.
 - **Stubbed (typed, UI-disabled):** ABC three-phase
   (`faultGeometry()` returns `isPair: false`, phases `['A','B','C']` — needs a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video

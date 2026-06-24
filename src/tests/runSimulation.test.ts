@@ -127,6 +127,24 @@ describe('runSimulation — line-to-ground faults (AG/BG/CG)', () => {
     expect(r.frames.every((f) => f.downstreamHealthyEnergized)).toBe(true)
   })
 
+  it('a persistent AG fault: shots 1–3 single-pole, but the final (lockout) shot converts to three-pole', () => {
+    // Force every reclose to re-strike so the recloser sequences all the way to lockout
+    // (DEFAULT_SCENARIO's recloser is configured for shotsToLockout: 4 — 3 reclose attempts).
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'AG', faultPersists: true })
+    expect(r.finalState).toBe('LOCKOUT')
+    expect(r.numTrips).toBe(4)
+
+    const earlyOpenFrames = r.frames.filter((f) => f.shot > 0 && f.shot < 4 && !f.energized)
+    const finalOpenFrames = r.frames.filter((f) => f.shot === 4 && !f.energized)
+    expect(earlyOpenFrames.length).toBeGreaterThan(0)
+    expect(finalOpenFrames.length).toBeGreaterThan(0)
+
+    // Shots 1–3: the faulted pole opens, but the 2 healthy phases stay energized (single-pole).
+    expect(earlyOpenFrames.every((f) => f.downstreamHealthyEnergized)).toBe(true)
+    // The 4th (lockout) shot converts to three-pole: the healthy phases drop too this time.
+    expect(finalOpenFrames.every((f) => !f.downstreamHealthyEnergized)).toBe(true)
+  })
+
   it('a line-to-line fault is NOT single-pole trippable (all 3 poles trip together)', () => {
     const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'AB' })
     expect(r.singlePoleTrip).toBe(false)

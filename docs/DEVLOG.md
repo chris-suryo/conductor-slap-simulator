@@ -6,6 +6,43 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 23: single-pole trip converts to 3-pole on the final/lockout shot
+
+**User correction on Session 22:** single-pole tripping should NOT apply to every trip
+indefinitely — a real recloser/SEL control single-pole trips the early shots (here: shots 1–3,
+DEFAULT_SCENARIO's `shotsToLockout: 4` = 3 reclose attempts) but converts to a three-pole trip on
+the FINAL operation before lockout, since it's about to give up and fully isolate the circuit
+rather than stay unbalanced. `runSimulation.ts`: imported `isLockout` from `recloserSequence.ts`
+and compute `isFinalShot = isLockout(snap.shot, operatingDevice.shotsToLockout)` per frame;
+`downstreamHealthyEnergized` is now `singlePoleTrip && !isFinalShot ? true : snap.energized`
+(was unconditionally `true` whenever `singlePoleTrip`). `ResultsPanel.tsx`: simplified
+`recloserPartialOpen` to `!recloserClosed && frame.downstreamHealthyEnergized` — this is
+automatically a full "Open" on the final shot without any extra branching, since
+`downstreamHealthyEnergized` already reflects the 3-pole conversion there; also fixed
+`subCurrentA` to key off `frame.downstreamHealthyEnergized` instead of the static
+`singlePoleTrip` flag, so the substation breaker correctly shows reduced (not nominal) load once
+the healthy phases are also interrupted on that final shot.
+
+**Tests:** new case — a persistent AG fault (`faultPersists: true`) sequences all the way to
+`LOCKOUT` after exactly 4 trips; frames during shots 1–3's open periods have
+`downstreamHealthyEnergized: true` (single-pole), frames during shot 4's open period have it
+`false` (three-pole). Verified live: seeking to shot 1's dead-time shows "1 pole open" / "200 A
+load"; seeking to shot 4's lockout shows a plain "Open" / "—" current. No console errors. 65
+tests green (was 64), typecheck clean.
+
+**Open question raised by the user (not yet implemented):** the two healthy phases on a ground
+fault carry ~200 A load current next to the much larger fault current on the faulted phase —
+shouldn't proximity to that field push them slightly, the same way the model already pushes the
+THIRD (unfaulted) phase a little during an L-L fault (`unfaultedForceNPerM` /
+`UNFAULTED_COUPLING`)? Worked out the numbers (see chat) — yes, physically there should be a
+small nonzero force, currently NOT modeled because the whole force step in `runSimulation.ts` is
+gated on `isPair` and skipped entirely for ground faults. Flagged as a real model gap and a
+candidate follow-up (would change the currently-tested "ground faults produce exactly zero
+force/displacement" behavior from Session 21) — deferred pending the user's go-ahead rather than
+implemented unprompted.
+
+---
+
 ## 2026-06-23 — Session 22: recloser single-pole tripping for ground faults
 
 **User feedback on Session 21:** the Live-status panel didn't reflect that the G&W

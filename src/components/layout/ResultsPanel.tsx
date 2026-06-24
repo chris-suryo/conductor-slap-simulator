@@ -96,19 +96,22 @@ function LiveStatus() {
   const recloserClosed = frame.energized
   const subClosed = frame.upstreamEnergized
   // Single-pole trip (ground fault, recloser engaged): the faulted phase opens but the other two
-  // never lose power, so the device reads "1 pole open" rather than fully open, and still carries
-  // load current on those two phases even while the faulted pole is interrupted.
+  // never lose power — EXCEPT on the final shot before lockout, where the recloser converts to a
+  // three-pole trip (see `downstreamHealthyEnergized`). "Partial" (1 pole open) is exactly the
+  // case where the faulted pole is open but the healthy phases are still up; that's true for every
+  // shot except the final one, without needing to special-case it here.
   const singlePoleTrip = result.singlePoleTrip
-  const recloserPartialOpen = singlePoleTrip && !recloserClosed
+  const recloserPartialOpen = !recloserClosed && frame.downstreamHealthyEnergized
   // The fault is downstream of the recloser, so both devices carry the fault current while it is
   // energized. With no fault: the recloser passes the downstream load while closed (or, under
   // single-pole trip, on its two healthy phases even with the faulted pole open); the substation
-  // breaker passes full load when the recloser is closed and reduced load once the recloser opens.
+  // breaker passes full load when the recloser is closed (or its 2 healthy phases are still
+  // carrying ~nominal demand) and reduced load once the whole downstream section is open.
   const recloserCurrentA = fault ? frame.currentA : frame.downstreamHealthyEnergized ? NOMINAL_LOAD_CURRENT_A : 0
   const subCurrentA = fault
     ? frame.currentA
     : subClosed
-      ? recloserClosed || singlePoleTrip // single-pole trip: 2 of 3 phases keep ~nominal demand
+      ? recloserClosed || frame.downstreamHealthyEnergized
         ? NOMINAL_LOAD_CURRENT_A
         : REDUCED_LOAD_CURRENT_A
       : 0
