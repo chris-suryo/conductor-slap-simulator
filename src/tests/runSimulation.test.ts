@@ -104,18 +104,34 @@ describe('runSimulation — line-to-ground faults (AG/BG/CG)', () => {
     expect(r.finalState).toBe('RESTORED')
   })
 
-  it.each(['AG', 'BG', 'CG'] as const)('%s: a single faulted conductor has no pairwise repulsion, so it never slaps', (faultType) => {
+  it.each([
+    ['AG', 'A'] as const,
+    ['BG', 'B'] as const,
+    ['CG', 'C'] as const,
+  ])('%s: no pairwise repulsion on the faulted conductor itself, so it never slaps', (faultType, faultedPhase) => {
     // No protection so the fault rides through for a while — if a ground fault produced a
-    // pairwise force the way a line-to-line one does, this would swing and could slap.
+    // pairwise force the way a line-to-line one does, this would swing and could slap. There's
+    // no second high-current conductor to repel against, so the faulted phase itself doesn't
+    // move and there's no "pair" force — but the two healthy phases DO feel a small coupling
+    // force from sitting in the faulted phase's field (same mechanism as the unfaulted phase in
+    // an L-L fault), so they pick up a tiny, much smaller displacement.
     const r = runSimulation({ ...NO_PROTECTION_SCENARIO, faultType })
+    const faultedDisp = faultedPhase === 'A' ? 'dispAFt' : faultedPhase === 'B' ? 'dispBFt' : 'dispCFt'
+    let maxHealthyDisp = 0
     for (const f of r.frames) {
-      expect(f.dispAFt).toBe(0)
-      expect(f.dispBFt).toBe(0)
-      expect(f.dispCFt).toBe(0)
-      expect(f.forcePerLenNPerM).toBe(0)
+      expect(f[faultedDisp]).toBe(0)
+      expect(f.forcePerLenNPerM).toBe(0) // no faulted PAIR, so this metric stays 0
+      for (const ph of ['A', 'B', 'C'] as const) {
+        if (ph === faultedPhase) continue
+        const key = ph === 'A' ? 'dispAFt' : ph === 'B' ? 'dispBFt' : 'dispCFt'
+        maxHealthyDisp = Math.max(maxHealthyDisp, Math.abs(f[key]))
+      }
     }
+    // Nonzero (physically honest coupling) but small — nowhere near slap range (it's a much
+    // weaker source than a faulted PAIR, so it stays well under the clearance threshold).
+    expect(maxHealthyDisp).toBeGreaterThan(0)
+    expect(maxHealthyDisp).toBeLessThan(r.contactThresholdFt)
     expect(r.slapOccurred).toBe(false)
-    expect(r.maxDisplacementFt).toBe(0)
   })
 
   it('the recloser single-pole trips a ground fault: the 2 healthy phases never lose power', () => {

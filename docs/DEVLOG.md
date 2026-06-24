@@ -6,6 +6,42 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 24: ground faults now couple a small force onto the two healthy phases
+
+**Closes the open question from Session 23.** The user confirmed ("Yes") the proposed fix for
+the gap flagged at the end of the last session: a ground fault (AG/BG/CG) has no pairwise
+repulsion (no second high-current conductor to repel against — the faulted phase itself still
+never moves in this model), but the two HEALTHY phases carry ~200 A load current sitting in the
+faulted phase's field, so they should feel a small coupling force — the same mechanism already
+used for the third/unfaulted phase during an L-L fault (`unfaultedForceNPerM` /
+`UNFAULTED_COUPLING`), just from one source instead of two.
+
+**`runSimulation.ts`:** the force-computation block was `if (snap.faultActive && isPair) {...}` —
+ground faults (`isPair: false`) skipped it entirely. Added an `else if (snap.faultActive &&
+!isPair && geom.phases.length === 1)` branch: for each phase other than the faulted one `pa`,
+compute `forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, I, distance)` to the faulted phase, sign
+it to push the healthy phase away, and de-rate it by `UNFAULTED_COUPLING * forceGain` — identical
+de-rating to the L-L case, just applied per-healthy-phase against the single source instead of
+summed from two. The adjacent phase (closer to `pa`) ends up with roughly double the force of the
+far phase, matching the 1/distance falloff. ABC (3-phase, still stubbed) is untouched — the new
+branch only fires when `geom.phases.length === 1`.
+
+**Tests:** rewrote the now-contradicted `'a single faulted conductor has no pairwise repulsion,
+so it never slaps'` test (it asserted hard-zero displacement on ALL three phases). The faulted
+phase itself still asserts exactly 0 displacement and `forcePerLenNPerM` still asserts exactly 0
+(there's no faulted PAIR for that metric to describe), but the two healthy phases now assert
+nonzero-but-small displacement (`< contactThresholdFt`), with `slapOccurred` still `false`. 65
+tests green, typecheck clean.
+
+**Verified live:** drove the store to `faultType: 'AG'` and read `result.frames` — adjacent phase
+B reaches ~0.0117 ft, far phase C ~0.0058 ft (almost exactly the expected 2:1 ratio from
+1/distance), both far under the 0.25 ft contact threshold; `finalState: 'RESTORED'`,
+`slapOccurred: false`, no console errors. Updated `CLAUDE.md`'s ground-fault physics description
+to match (was: "correctly produces NO pairwise magnetic repulsion/slap"; now describes the new
+healthy-phase coupling).
+
+---
+
 ## 2026-06-23 — Session 23: single-pole trip converts to 3-pole on the final/lockout shot
 
 **User correction on Session 22:** single-pole tripping should NOT apply to every trip

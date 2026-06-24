@@ -200,6 +200,18 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
         const fcPerLen = unfaultedForceNPerM(posPcAbs, posPaAbs, posPbAbs, I)
         forceN[pc] = UNFAULTED_COUPLING * forceGain * fcPerLen * spanM
       }
+    } else if (snap.faultActive && !isPair && geom.phases.length === 1) {
+      // Ground fault (single faulted conductor): there's no pairwise repulsion (no second
+      // high-current conductor to repel against), but the two HEALTHY phases still carry load
+      // current sitting in the faulted phase's field, so each feels a small coupling force —
+      // same physics/de-rating as the unfaulted phase in an L-L fault, just from one source.
+      for (const ph of ['A', 'B', 'C'] as Phase[]) {
+        if (ph === pa) continue
+        const posPhAbs = restX[ph] + osc[ph].x
+        const dM = Math.max(Math.abs(posPhAbs - posPaAbs), D_MIN_M)
+        const fPerLen = forcePerLengthNPerM(UNFAULTED_PHASE_CURRENT_A, I, dM)
+        forceN[ph] = UNFAULTED_COUPLING * forceGain * fPerLen * Math.sign(posPhAbs - posPaAbs || 1) * spanM
+      }
     }
 
     // --- upstream (substation-side) energization ---

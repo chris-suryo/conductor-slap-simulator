@@ -168,9 +168,14 @@ without clicking, use the dev `window.__store`, e.g.
   substation relay clears on its own curve, de-energizing the whole feeder; surfaced via
   `SimulationResult.upstreamFaultEvent` and a banner in the Outcome card. **AG/BG/CG ground
   faults** (enabled in the fault-type selector): `faultGeometry()` returns `isPair: false` and a
-  single faulted phase — `runSimulation`'s force step is gated on `isPair`, so a ground fault
-  correctly produces NO pairwise magnetic repulsion/slap in this model (protection still trips
-  normally on current magnitude); the 3D fault fireball/smoke (`FaultFireball.tsx`) renders at
+  single faulted phase, so there's no pairwise repulsion (no second high-current conductor to
+  repel against — the faulted phase itself never moves in this model). The two HEALTHY phases
+  still carry load current sitting in the faulted phase's field, though, so each picks up a
+  small coupling force (same `UNFAULTED_COUPLING * EDU_FORCE_GAIN`-derated mechanism as the
+  unfaulted third phase in an L-L fault, just from one source instead of two, in the
+  `else if (!isPair && geom.phases.length === 1)` branch of `runSimulation.ts`'s force step) —
+  real but tiny sway, well under the slap threshold at default settings; protection still trips
+  normally on current magnitude. The 3D fault fireball/smoke (`FaultFireball.tsx`) renders at
   that single conductor since `pair.a === pair.b` collapses cleanly to one position. **The
   recloser single-pole trips ground faults:** `SimulationResult.singlePoleTrip` is true whenever
   the RECLOSER (not the substation relay/breaker, which has no such capability and always trips
