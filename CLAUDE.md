@@ -171,7 +171,14 @@ without clicking, use the dev `window.__store`, e.g.
   single faulted phase — `runSimulation`'s force step is gated on `isPair`, so a ground fault
   correctly produces NO pairwise magnetic repulsion/slap in this model (protection still trips
   normally on current magnitude); the 3D fault fireball/smoke (`FaultFireball.tsx`) renders at
-  that single conductor since `pair.a === pair.b` collapses cleanly to one position.
+  that single conductor since `pair.a === pair.b` collapses cleanly to one position. **The
+  recloser single-pole trips ground faults:** `SimulationResult.singlePoleTrip` is true whenever
+  the RECLOSER (not the substation relay/breaker, which has no such capability and always trips
+  three-pole) is clearing an AG/BG/CG fault — only the faulted phase opens; the other two stay
+  energized throughout (`SimulationFrame.downstreamHealthyEnergized`, distinct from `energized`,
+  which still tracks the faulted pole specifically). The Live-status Recloser card reflects this:
+  eyebrow reads "single-pole trip", and the state cell shows an amber "1 pole open" instead of a
+  full "Open", with load current still shown on the two healthy phases.
 - **Stubbed (typed, UI-disabled):** ABC three-phase
   (`faultGeometry()` returns `isPair: false`, phases `['A','B','C']` — needs a real model + UI enable).
 - **Roadmap:** critical-clearing overlay on the TCC chart, ground-overcurrent settings, video

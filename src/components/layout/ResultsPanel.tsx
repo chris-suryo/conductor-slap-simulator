@@ -31,8 +31,22 @@ function Stat({
   )
 }
 
-/** A closed/open device-state cell with an indicator dot. */
-function BreakerStateCell({ closed, openLabel = 'Open' }: { closed: boolean; openLabel?: string }) {
+/**
+ * A closed/open device-state cell with an indicator dot. `partial` shows an amber "1 pole open"
+ * state instead of fully open/closed — used for the recloser under single-pole tripping, where
+ * the faulted phase opens but the other two stay closed (vs. a three-pole device, which is
+ * always fully open or fully closed).
+ */
+function BreakerStateCell({
+  closed,
+  openLabel = 'Open',
+  partial = false,
+}: {
+  closed: boolean
+  openLabel?: string
+  partial?: boolean
+}) {
+  const label = closed ? 'Closed' : partial ? '1 pole open' : openLabel
   return (
     <div className="panel-muted px-3 py-2">
       <div className="label-eyebrow mb-1">State</div>
@@ -40,10 +54,10 @@ function BreakerStateCell({ closed, openLabel = 'Open' }: { closed: boolean; ope
         <span
           className={cn(
             'h-2 w-2 rounded-full',
-            closed ? 'bg-energized shadow-glow shadow-energized' : 'bg-deenergized',
+            closed ? 'bg-energized shadow-glow shadow-energized' : partial ? 'bg-caution' : 'bg-deenergized',
           )}
         />
-        <span className={closed ? 'text-energized' : 'text-fg-muted'}>{closed ? 'Closed' : openLabel}</span>
+        <span className={closed ? 'text-energized' : partial ? 'text-caution' : 'text-fg-muted'}>{label}</span>
       </div>
     </div>
   )
@@ -81,14 +95,20 @@ function LiveStatus() {
   const fault = frame.faultActive
   const recloserClosed = frame.energized
   const subClosed = frame.upstreamEnergized
+  // Single-pole trip (ground fault, recloser engaged): the faulted phase opens but the other two
+  // never lose power, so the device reads "1 pole open" rather than fully open, and still carries
+  // load current on those two phases even while the faulted pole is interrupted.
+  const singlePoleTrip = result.singlePoleTrip
+  const recloserPartialOpen = singlePoleTrip && !recloserClosed
   // The fault is downstream of the recloser, so both devices carry the fault current while it is
-  // energized. With no fault: the recloser passes the downstream load while closed; the substation
+  // energized. With no fault: the recloser passes the downstream load while closed (or, under
+  // single-pole trip, on its two healthy phases even with the faulted pole open); the substation
   // breaker passes full load when the recloser is closed and reduced load once the recloser opens.
-  const recloserCurrentA = fault ? frame.currentA : recloserClosed ? NOMINAL_LOAD_CURRENT_A : 0
+  const recloserCurrentA = fault ? frame.currentA : frame.downstreamHealthyEnergized ? NOMINAL_LOAD_CURRENT_A : 0
   const subCurrentA = fault
     ? frame.currentA
     : subClosed
-      ? recloserClosed
+      ? recloserClosed || singlePoleTrip // single-pole trip: 2 of 3 phases keep ~nominal demand
         ? NOMINAL_LOAD_CURRENT_A
         : REDUCED_LOAD_CURRENT_A
       : 0
@@ -98,12 +118,12 @@ function LiveStatus() {
       {/* Recloser (downstream device) */}
       <Card>
         <CardHeader
-          eyebrow="Live · downstream"
+          eyebrow={singlePoleTrip ? 'Live · downstream · single-pole trip' : 'Live · downstream'}
           title="Recloser"
           right={<Badge tone={meta.tone}>{meta.label}</Badge>}
         />
         <div className="grid grid-cols-3 gap-2">
-          <BreakerStateCell closed={recloserClosed} />
+          <BreakerStateCell closed={recloserClosed} partial={recloserPartialOpen} />
           <DeviceCurrentCell amps={recloserCurrentA} fault={fault} />
           <div className="panel-muted px-3 py-2">
             <div className="label-eyebrow mb-1">Clearance</div>

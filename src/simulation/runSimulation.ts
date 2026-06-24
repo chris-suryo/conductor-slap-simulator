@@ -132,6 +132,11 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
   //    of its enable state; only the substation relay ever sees and clears it.
   const recloserEngaged = scenario.faultLocation === 'downstream' && scenario.protectionEnabled
   const operatingDevice = recloserEngaged ? scenario.protection : scenario.substationRelay
+  // Single-pole tripping is a RECLOSER capability for single-phase ground faults (AG/BG/CG) — it
+  // opens only the faulted pole, leaving the other two phases energized. The substation
+  // relay/breaker has no such capability (always three-pole), so this only applies when the
+  // recloser is the actual operating device.
+  const singlePoleTrip = recloserEngaged && geom.phases.length === 1
   const controller = new ProtectionController({
     protectionEnabled: true,
     faultCurrentA: I,
@@ -204,6 +209,9 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     // breaker is the only thing that can clear the fault, so the whole line de-energizes together
     // (recloser disabled, or an upstream fault).
     const upstreamEnergized = recloserEngaged ? true : snap.energized
+    // The two healthy phases never lose power under single-pole tripping (only the faulted pole
+    // opens); otherwise this section's energization is all-or-nothing, same as `energized`.
+    const downstreamHealthyEnergized = singlePoleTrip ? true : snap.energized
 
     // --- record frame at tMs ---
     const dispAFt = mToFt(osc.A.x)
@@ -214,6 +222,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
       state: snap.state,
       energized: snap.energized,
       upstreamEnergized,
+      downstreamHealthyEnergized,
       faultActive: snap.faultActive,
       currentA: snap.faultActive ? I : 0,
       dispAFt,
@@ -278,6 +287,7 @@ export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): Simul
     restPairSeparationFt,
     contactThresholdFt: thresholdFt,
     numTrips,
+    singlePoleTrip,
     // Populated by computeWitnessFrames (run after this), which mutates this same result object —
     // see useScenarioStore's rerun(): runSimulation() then computeWitnessFrames(scenario, ..., result).
     upstreamFaultEvent: null,
@@ -439,6 +449,7 @@ export function computeWitnessFrames(
       state: upSnap ? upSnap.state : pfEff.state,
       energized: pfEff.upstreamEnergized,
       upstreamEnergized: pfEff.upstreamEnergized,
+      downstreamHealthyEnergized: pfEff.upstreamEnergized,
       faultActive,
       currentA: upstreamCurrentA,
       dispAFt: mToFt(osc.A.x),

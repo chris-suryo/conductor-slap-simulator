@@ -160,6 +160,14 @@ export interface SimulationFrame {
    * side keeps carrying (reduced) load current rather than going dark with the faulted section.
    */
   upstreamEnergized: boolean
+  /**
+   * The two HEALTHY (unfaulted) downstream phases stay energized — true throughout when the
+   * recloser is single-pole-trip capable for this fault (a ground fault: AG/BG/CG, recloser
+   * engaged) since it opens only the faulted pole, never interrupting the other two. Otherwise
+   * equal to `energized` (a three-pole device/trip de-energizes all phases together, same as
+   * before this field existed).
+   */
+  downstreamHealthyEnergized: boolean
   /** Fault current is actually flowing (energized AND a fault is present). */
   faultActive: boolean
   /** Magnitude of fault current used this frame (A); 0 when not faulting. */
@@ -229,6 +237,14 @@ export interface SimulationResult {
   /** Clearance at/under which a slap is registered (ft). */
   contactThresholdFt: number
   numTrips: number
+  /**
+   * True when the operating device for this run is the RECLOSER and the fault is a single-phase
+   * ground fault (AG/BG/CG) — modeling the recloser's single-pole-trip capability: it opens only
+   * the faulted phase, so the other two stay energized throughout (see `downstreamHealthyEnergized`
+   * on each frame). The substation relay/breaker has no such capability and always trips
+   * three-pole, so this is false whenever the relay (not the recloser) is the operating device.
+   */
+  singlePoleTrip: boolean
   /** A slap-induced upstream fault that the substation relay had to clear, if one occurred. */
   upstreamFaultEvent: UpstreamFaultEvent | null
 }

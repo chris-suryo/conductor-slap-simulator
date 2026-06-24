@@ -6,6 +6,50 @@ read the top entry to see where we left off.
 
 ---
 
+## 2026-06-23 — Session 22: recloser single-pole tripping for ground faults
+
+**User feedback on Session 21:** the Live-status panel didn't reflect that the G&W
+recloser/SEL control is actually programmed for SINGLE-POLE tripping on a ground fault — it
+should open only the faulted phase, leaving the other two energized, while the substation
+breaker (no single-pole capability) always trips all three poles. Previously `energized` was a
+single all-or-nothing flag for the whole downstream section, so the UI showed the recloser as
+fully "Open" (and load current dropping to 0) even on a single-phase fault — physically wrong.
+
+**Model change** (`types.ts`, `runSimulation.ts`):
+- New `SimulationResult.singlePoleTrip`: true iff the RECLOSER (not the relay) is the operating
+  device AND the fault is single-phase (`geom.phases.length === 1`, i.e. AG/BG/CG) — computed
+  once per run from `recloserEngaged && geom.phases.length === 1`.
+- New `SimulationFrame.downstreamHealthyEnergized`: true whenever the two healthy phases are
+  energized — always `true` under `singlePoleTrip` (they're never interrupted), otherwise equal
+  to `energized` (no behavior change for L-L/3-phase faults, which still trip all 3 poles
+  together). `energized` itself is UNCHANGED — it still tracks the faulted pole specifically, so
+  the existing FSM/tests didn't need touching.
+- `computeWitnessFrames`'s witness-span frames get `downstreamHealthyEnergized: pfEff.upstreamEnergized`
+  (that span has no per-phase distinction of its own; mirrors its single energization flag for
+  type completeness).
+
+**UI** (`ResultsPanel.tsx`): `BreakerStateCell` gained a `partial` prop — shows an amber "1 pole
+open" instead of a full red "Open" when `singlePoleTrip && !energized`. The Recloser card's
+current readout now keys off `downstreamHealthyEnergized` instead of `energized`, so load current
+on the 2 healthy phases stays visible (`200 A · load`) even while the faulted pole is open. The
+card's eyebrow reads "Live · downstream · single-pole trip" when applicable. Substation breaker
+card is untouched (always full Closed/Open, three-pole, as the user confirmed is correct).
+
+**Tests:** 3 new cases in `runSimulation.test.ts` — AG fault confirms `singlePoleTrip: true`,
+`energized` still toggles false on trip, but `downstreamHealthyEnergized` is true for every
+frame; an AB (line-to-line) fault confirms `singlePoleTrip: false` and `downstreamHealthyEnergized
+=== energized` throughout; a ground fault with the recloser disabled (routed to the substation
+relay) also confirms `singlePoleTrip: false` (relay has no single-pole capability).
+
+Verified live: seeking to the trip frame for a default AG fault, the Recloser card reads
+"1 pole open" (amber) with "200 A · load" current, eyebrow "single-pole trip", while the
+Substation breaker card stays "Closed". Switching to an AB fault reverts the eyebrow to plain
+"Live · downstream" with no partial state (confirmed after allowing the re-render to flush — a
+synchronous DOM read right after the state change briefly showed stale text). No console errors.
+64 tests green (was 61), typecheck clean.
+
+---
+
 ## 2026-06-23 — Session 21: AG/BG/CG line-to-ground faults enabled
 
 **User request:** add line-to-ground faults. Turned out the model already handled them safely —

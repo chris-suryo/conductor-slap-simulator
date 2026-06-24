@@ -117,4 +117,27 @@ describe('runSimulation — line-to-ground faults (AG/BG/CG)', () => {
     expect(r.slapOccurred).toBe(false)
     expect(r.maxDisplacementFt).toBe(0)
   })
+
+  it('the recloser single-pole trips a ground fault: the 2 healthy phases never lose power', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'AG' })
+    expect(r.singlePoleTrip).toBe(true)
+    // The faulted pole DOES open during the trip — `energized` still tracks it accurately.
+    expect(r.frames.some((f) => !f.energized)).toBe(true)
+    // But the 2 healthy phases are never interrupted, for every frame in the run.
+    expect(r.frames.every((f) => f.downstreamHealthyEnergized)).toBe(true)
+  })
+
+  it('a line-to-line fault is NOT single-pole trippable (all 3 poles trip together)', () => {
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'AB' })
+    expect(r.singlePoleTrip).toBe(false)
+    // Without single-pole capability, "healthy" energization just mirrors the device state.
+    expect(r.frames.every((f) => f.downstreamHealthyEnergized === f.energized)).toBe(true)
+  })
+
+  it('a ground fault routed to the substation relay (recloser disabled) trips all 3 poles', () => {
+    // The substation breaker has no single-pole capability — only the RECLOSER does.
+    const r = runSimulation({ ...DEFAULT_SCENARIO, faultType: 'AG', protectionEnabled: false })
+    expect(r.singlePoleTrip).toBe(false)
+    expect(r.frames.every((f) => f.downstreamHealthyEnergized === f.energized)).toBe(true)
+  })
 })
