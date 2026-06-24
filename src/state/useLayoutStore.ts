@@ -12,14 +12,16 @@ import { clamp } from '@/utils/math'
 
 const STORAGE_KEY = 'csim-layout'
 
-// Left panel widened for legibility (scrolling is fine — it's the controls panel, not the
-// scene). Right panel (Results) is back to its original range; it didn't need the extra width.
-export const LEFT_MIN = 420
-export const LEFT_MAX = 800
-export const RIGHT_MIN = 240
-export const RIGHT_MAX = 480
-const LEFT_DEFAULT = 560
-const RIGHT_DEFAULT = 324
+// Both side panels widened (~1.5x) for legibility, balanced against the center 3D scene so it
+// still gets a comfortable share of the window (verified live at 1280 and 1920px). Note this
+// only affects the Physics/Protection setup view — Presentation mode hides both asides entirely
+// (see Shell.tsx's `chromeHidden`), so the scene always gets the full window there regardless.
+export const LEFT_MIN = 390
+export const LEFT_MAX = 780
+export const RIGHT_MIN = 360
+export const RIGHT_MAX = 720
+const LEFT_DEFAULT = 520
+const RIGHT_DEFAULT = 480
 
 interface Persisted {
   leftWidth: number
