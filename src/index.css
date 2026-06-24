@@ -160,6 +160,14 @@
     @apply font-mono tabular-nums;
   }
 
+  /* Side panels (controls + results) rendered ~22% larger for legibility — `zoom` scales
+   * font size, padding, borders, and line-height together (not just text), and the panels
+   * already scroll vertically (`csim-scroll overflow-y-auto`), so the extra height this
+   * creates is expected and fine. Supported in all current evergreen browsers. */
+  .side-panel-zoom {
+    zoom: 1.22;
+  }
+
   /* Faint grid overlay used behind the 3D viewport */
   .grid-backdrop {
     background-image:

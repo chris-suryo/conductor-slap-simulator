@@ -159,7 +159,7 @@ export function ResultsPanel() {
   const slapTone = result.slapOccurred ? 'text-fault' : 'text-healthy'
 
   return (
-    <div className="csim-scroll flex h-full flex-col gap-3 overflow-y-auto pl-1">
+    <div className="side-panel-zoom csim-scroll flex h-full flex-col gap-3 overflow-y-auto pl-1">
       <LiveStatus />
 
       <Card>

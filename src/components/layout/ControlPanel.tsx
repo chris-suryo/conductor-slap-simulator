@@ -150,7 +150,7 @@ export function ControlPanel() {
   const protOff = !scenario.protectionEnabled
 
   return (
-    <div className="csim-scroll flex h-full flex-col gap-3 overflow-y-auto pr-1">
+    <div className="side-panel-zoom csim-scroll flex h-full flex-col gap-3 overflow-y-auto pr-1">
       {/* Presets */}
       <Card>
         <CardHeader eyebrow="Scenario presets" title="Run a teaching scenario" />
