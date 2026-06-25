@@ -12,14 +12,14 @@ export function SourceMarker({ z, y = 4 }: { z: number; y?: number }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', userSelect: 'none' }}>
         <div
           style={{
-            width: 36,
-            height: 36,
+            width: 108,
+            height: 108,
             borderRadius: '50%',
             background: '#0C3552',
-            border: '2px solid #FD8505',
+            border: '6px solid #FD8505',
             color: '#fff',
             fontWeight: 700,
-            fontSize: 19,
+            fontSize: 57,
             display: 'grid',
             placeItems: 'center',
             boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
@@ -28,7 +28,7 @@ export function SourceMarker({ z, y = 4 }: { z: number; y?: number }) {
         >
           S
         </div>
-        <div style={{ marginTop: 3, fontSize: 9, letterSpacing: '0.14em', color: '#FD8505', fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <div style={{ marginTop: 9, fontSize: 27, letterSpacing: '0.14em', color: '#FD8505', fontWeight: 600, whiteSpace: 'nowrap' }}>
           SOURCE
         </div>
       </div>

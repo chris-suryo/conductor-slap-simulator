@@ -22,11 +22,11 @@ export function ForceChart() {
   const t = useChartTheme()
 
   return (
-    <Card className="force-light flex flex-col">
-      <CardHeader eyebrow="Physics" title="Magnetic force" />
-      <div className="aspect-[6/5] w-full">
+    <Card className="flex flex-col">
+      <CardHeader eyebrow="Physics" title="Magnetic force" large />
+      <div className="aspect-[2/1] w-full">
         <ResponsiveContainer>
-          <AreaChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="forceFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={COLORS.fault} stopOpacity={0.45} />
@@ -43,12 +43,12 @@ export function ForceChart() {
               axisLine={{ stroke: t.axisLine }}
               tickLine={false}
             />
-            <YAxis tick={t.axisTick} width={38} axisLine={false} tickLine={false}>
+            <YAxis tick={t.axisTick} width={64} axisLine={false} tickLine={false}>
               <Label
                 value="N/m"
                 position="insideTopLeft"
                 offset={6}
-                style={{ fontSize: 9, fill: t.axisTick.fill, letterSpacing: '0.06em' }}
+                style={{ fontSize: 39, fill: t.axisTick.fill, letterSpacing: '0.06em' }}
               />
             </YAxis>
             <Tooltip
@@ -69,7 +69,7 @@ export function ForceChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-[10px] text-fg-faint">Force per length (N/m) — zero while the breaker is open.</p>
+      <p className="mt-2 text-[39px] text-fg-faint">Force per length (N/m) — zero while the breaker is open.</p>
     </Card>
   )
 }

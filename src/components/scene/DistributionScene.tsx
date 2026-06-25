@@ -222,13 +222,13 @@ export function DistributionScene() {
           {sceneExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
         </button>
       )}
-      <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-lg border border-edge/60 bg-panel/70 px-3 py-1.5 backdrop-blur">
-        <span className="h-1.5 w-1.5 rounded-full bg-energized" />
-        <span className="text-xs font-medium text-fg-muted">
+      <div className="pointer-events-none absolute left-3 top-3 flex max-w-[600px] items-center gap-3 rounded-lg border border-edge/60 bg-panel/70 px-4 py-2 backdrop-blur">
+        <span className="h-2 w-2 shrink-0 rounded-full bg-energized" />
+        <span className="text-[48px] font-medium leading-tight text-fg-muted">
           {scenario.voltageClassKv} kV · {scenario.faultType} fault · source → recloser → 3 spans
         </span>
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[300px] text-[10px] leading-snug text-fg-faint">
+      <div className="pointer-events-none absolute bottom-3 left-3 max-w-[550px] text-[39px] leading-snug text-fg-faint">
         Source (S) at the substation end → G&amp;W recloser → faulted span {scenario.spanLengthFt} ft
         with the L-L fault at its remote end. Lateral motion shown at ~{DISP_GAIN}× for clarity.
       </div>

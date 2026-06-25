@@ -28,7 +28,7 @@ function LivePhaseBadge() {
   const result = useScenarioStore((s) => s.result)
   const frame = frameAtMs(result, cursorMs)
   const meta = STATE_META[frame.state]
-  return <Badge tone={meta.tone}>{meta.label}</Badge>
+  return <Badge tone={meta.tone} className="text-[48px]">{meta.label}</Badge>
 }
 
 export function TimelinePanel() {
@@ -76,16 +76,16 @@ export function TimelinePanel() {
   }
 
   return (
-    <div className="force-light panel p-3">
+    <div className="panel min-h-[438px] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className="label-eyebrow">Protection sequence</div>
+        <div className="label-eyebrow text-[48px]">Protection sequence</div>
         <LivePhaseBadge />
       </div>
 
       <div
         ref={trackRef}
         onClick={handleSeek}
-        className="relative h-12 cursor-pointer overflow-hidden rounded-lg border border-edge bg-panel-muted"
+        className="relative h-20 cursor-pointer overflow-hidden rounded-lg border border-edge bg-panel-muted"
       >
         {/* phase segments */}
         {segments.map((seg, i) => {
@@ -135,12 +135,12 @@ export function TimelinePanel() {
       </div>
 
       {/* event chips */}
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
         {result.events.map((ev, i) => (
           <button
             key={i}
             onClick={() => seek(ev.tMs)}
-            className="group flex items-center gap-1.5 text-[11px] text-fg-muted transition-colors hover:text-fg"
+            className="group flex items-center gap-2 text-[39px] text-fg-muted transition-colors hover:text-fg"
             title={ev.detail}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: EVENT_COLOR[ev.kind] }} />

@@ -23,11 +23,11 @@ export function DisplacementChart() {
   const threshold = result.contactThresholdFt
 
   return (
-    <Card className="force-light flex flex-col">
-      <CardHeader eyebrow="Physics" title="Conductor clearance" />
-      <div className="aspect-[6/5] w-full">
+    <Card className="flex flex-col">
+      <CardHeader eyebrow="Physics" title="Conductor clearance" large />
+      <div className="aspect-[2/1] w-full">
         <ResponsiveContainer>
-          <ComposedChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="clearanceFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={COLORS.energized} stopOpacity={0.22} />
@@ -44,7 +44,7 @@ export function DisplacementChart() {
               axisLine={{ stroke: t.axisLine }}
               tickLine={false}
             />
-            <YAxis tick={t.axisTick} width={34} axisLine={false} tickLine={false} unit="ft" />
+            <YAxis tick={t.axisTick} width={64} axisLine={false} tickLine={false} unit="ft" />
             <Tooltip
               contentStyle={t.tooltip}
               cursor={{ stroke: t.axisLine }}
@@ -56,7 +56,7 @@ export function DisplacementChart() {
               y={threshold}
               stroke={COLORS.fault}
               strokeDasharray="4 3"
-              label={{ value: 'slap', fontSize: 9, fill: COLORS.fault, position: 'insideBottomRight' }}
+              label={{ value: 'slap', fontSize: 39, fill: COLORS.fault, position: 'insideBottomRight' }}
             />
             <Area
               type="monotone"
@@ -77,7 +77,7 @@ export function DisplacementChart() {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-[10px] text-fg-faint">
+      <p className="mt-2 text-[39px] text-fg-faint">
         Surface-to-surface gap (ft). Touching the dashed line is a slap.
       </p>
     </Card>

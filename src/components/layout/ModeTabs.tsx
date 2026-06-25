@@ -17,7 +17,7 @@ export function ModeTabs() {
           key={t.id}
           onClick={() => setMode(t.id)}
           className={cn(
-            'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+            'rounded-md px-3 py-1.5 text-[32px] font-medium transition-colors',
             mode === t.id
               ? 'bg-brand/15 text-brand shadow-sm'
               : 'text-fg-muted hover:text-fg',

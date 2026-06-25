@@ -519,10 +519,15 @@ export function computeUpstreamSpanFrames(
       // The substation breaker now governs both spans' energization — and, since it's upstream
       // of the recloser too, the primary (downstream) frame at this same tick as well. Surface
       // the induced fault as a fault (not load current) while the relay is actively timing it out.
+      // `downstreamHealthyEnergized` must be ANDed too (not just `energized`): once the substation
+      // breaker itself is open, there's no source at all, so the recloser's healthy phases (which
+      // drive its own load-current display) can't still read as energized just because the
+      // recloser's own controller happened to restore earlier.
       primary.frames[i] = {
         ...pf,
         upstreamEnergized: upSnap.energized,
         energized: pf.energized && upSnap.energized,
+        downstreamHealthyEnergized: pf.downstreamHealthyEnergized && upSnap.energized,
         faultActive: pf.faultActive || upSnap.faultActive,
         currentA: upSnap.faultActive ? inducedI : pf.currentA,
       }

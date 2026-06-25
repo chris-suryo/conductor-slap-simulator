@@ -23,13 +23,13 @@ const DistributionScene = lazy(() =>
 
 function Header() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/95 px-4 shadow-panel backdrop-blur-sm">
+    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-edge bg-panel/95 px-4 py-2 shadow-panel backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <ApcLogo />
-        <div className="h-8 w-px bg-edge" />
-        <div>
-          <h1 className="text-sm font-semibold leading-tight text-fg">Conductor Slap Simulator</h1>
-          <p className="text-[11px] leading-tight text-fg-faint">
+        <div className="h-40 w-px bg-edge" />
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <h1 className="truncate text-[64px] font-semibold leading-tight text-fg">Conductor Slap Simulator</h1>
+          <p className="truncate text-[32px] leading-tight text-fg-faint">
             Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
           </p>
         </div>
@@ -72,8 +72,8 @@ export function Shell() {
           </>
         )}
 
-        <main className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="relative min-h-0 flex-1">
+        <main className="csim-scroll flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto">
+          <div className="relative h-[40vh] shrink-0">
             <Suspense
               fallback={
                 <div className="grid h-full w-full place-items-center rounded-xl border border-edge bg-scene">
@@ -84,10 +84,12 @@ export function Shell() {
               <DistributionScene />
             </Suspense>
           </div>
-          {/* Timeline stays visible in presentation mode; only the expand toggle hides it. */}
+          {/* Timeline stays visible in presentation mode; only the expand toggle hides it.
+              It's now 3x its old height with text matching the scene overlay's size, so
+              `main` scrolls (above) rather than clipping it or squeezing the scene. */}
           {!sceneExpanded && <TimelinePanel />}
           {!chromeHidden && (
-            <div className="mx-auto grid w-[84.9%] shrink-0 grid-cols-3 gap-3">
+            <div className="mx-auto grid w-[84.9%] shrink-0 grid-cols-3 gap-2 pb-3">
               <ForceChart />
               <DisplacementChart />
               <TccChart />

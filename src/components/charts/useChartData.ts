@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
+import { useThemeStore } from '@/state/useThemeStore'
 import { buildPalette } from '@/theme/tokens'
 
 export interface ChartPoint {
@@ -60,19 +61,19 @@ export interface ChartTheme {
   surface: string
 }
 
-/** Recharts styling — pinned to the light palette so the 3 chart cards stay light regardless
- * of the app's active dark/light theme (matches the `force-light` class on their Card). */
+/** Recharts styling — follows the app's active dark/light theme, same as every other panel. */
 export function useChartTheme(): ChartTheme {
-  const c = useMemo(() => buildPalette('light'), [])
+  const resolved = useThemeStore((s) => s.resolved)
+  const c = useMemo(() => buildPalette(resolved), [resolved])
   return {
-    axisTick: { fontSize: 10, fill: c.text3 },
+    axisTick: { fontSize: 39, fill: c.text3 },
     gridStroke: c.gridLine,
     axisLine: c.edge,
     tooltip: {
       backgroundColor: c.tooltipBg,
       border: `1px solid ${c.edge}`,
       borderRadius: 8,
-      fontSize: 11,
+      fontSize: 39,
       color: c.text1,
       boxShadow: '0 10px 30px -16px rgba(2, 8, 18, 0.55)',
     },

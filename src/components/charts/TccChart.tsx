@@ -61,8 +61,8 @@ function firstOpMs(device: ProtectionSettings, faultA: number): number | null {
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-[11px] text-fg-muted">{label}</span>
+      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
+      <span className="text-[39px] text-fg-muted">{label}</span>
     </span>
   )
 }
@@ -101,7 +101,7 @@ export function TccChart() {
 
   const chart = (
     <ResponsiveContainer>
-      <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={t.gridStroke} />
         <XAxis
           dataKey="current"
@@ -122,7 +122,7 @@ export function TccChart() {
           allowDataOverflow
           ticks={Y_TICKS}
           tick={t.axisTick}
-          width={42}
+          width={68}
           axisLine={false}
           tickLine={false}
           tickFormatter={fmtTime}
@@ -140,7 +140,7 @@ export function TccChart() {
           x={I}
           stroke={COLORS.fault}
           strokeDasharray="4 3"
-          label={{ value: 'fault', fontSize: 9, fill: COLORS.fault, position: 'top' }}
+          label={{ value: 'fault', fontSize: 39, fill: COLORS.fault, position: 'top' }}
         />
         <Line
           type="monotone"
@@ -169,7 +169,7 @@ export function TccChart() {
             fill={RECLOSER_COLOR}
             stroke={t.surface}
             strokeWidth={2}
-            label={{ value: fmtTime(recloserOp), fontSize: 9, fill: RECLOSER_COLOR, position: 'right' }}
+            label={{ value: fmtTime(recloserOp), fontSize: 39, fill: RECLOSER_COLOR, position: 'right' }}
           />
         )}
         {relayOp != null && (
@@ -180,7 +180,7 @@ export function TccChart() {
             fill={RELAY_COLOR}
             stroke={t.surface}
             strokeWidth={2}
-            label={{ value: fmtTime(relayOp), fontSize: 9, fill: RELAY_COLOR, position: 'left' }}
+            label={{ value: fmtTime(relayOp), fontSize: 39, fill: RELAY_COLOR, position: 'left' }}
           />
         )}
       </LineChart>
@@ -201,10 +201,11 @@ export function TccChart() {
   )
 
   const card = (
-    <Card className={expanded ? 'force-light flex h-full flex-col' : 'force-light flex flex-col'}>
+    <Card className={expanded ? 'flex h-full flex-col' : 'flex flex-col'}>
       <CardHeader
         eyebrow="Protection"
         title="Time–current curves (TCC)"
+        large
         right={
           <div className="flex items-center gap-2">
             {!scenario.protectionEnabled && <Badge tone="deenergized">Disabled</Badge>}
@@ -212,7 +213,7 @@ export function TccChart() {
           </div>
         }
       />
-      <div className={expanded ? 'min-h-0 flex-1' : 'aspect-[6/5] w-full'}>{chart}</div>
+      <div className={expanded ? 'min-h-0 flex-1' : 'aspect-[2/1] w-full'}>{chart}</div>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
         <LegendDot color={RECLOSER_COLOR} label="Recloser" />
         <LegendDot color={RELAY_COLOR} label="Substation relay" />

@@ -39,7 +39,7 @@ export function Recloser({ z, restX }: { z: number; restX: Record<Phase, number>
           style={{
             pointerEvents: 'none',
             userSelect: 'none',
-            fontSize: 9,
+            fontSize: 27,
             letterSpacing: '0.1em',
             color: '#FD8505',
             fontWeight: 600,

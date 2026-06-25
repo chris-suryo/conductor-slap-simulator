@@ -22,7 +22,7 @@ export function ApcLogo({
 
   if (logo.src) {
     const src = resolved === 'light' && logo.srcLight ? logo.srcLight : logo.src
-    const height = lg ? 44 : 28
+    const height = lg ? 220 : 140
     return (
       <img
         src={src}
