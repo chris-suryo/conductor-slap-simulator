@@ -24,7 +24,7 @@ export function ForceChart() {
   return (
     <Card className="flex flex-col">
       <CardHeader eyebrow="Physics" title="Magnetic force" large />
-      <div className="aspect-[2/1] w-full">
+      <div className="aspect-[4/3] w-full">
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
             <defs>

@@ -95,10 +95,13 @@ export function Conductor({
     let targetIntensity = 0.12
     let targetColor: string = COLORS.deenergized
     const live = participates && frame.faultActive
+    // Non-faulted phases stay lit through a single-pole recloser trip; only the faulted
+    // phase(s) go dark (all phases go dark together once lockout converts the trip to 3-pole).
+    const poleEnergized = participates ? frame.energized : frame.downstreamHealthyEnergized
     if (live) {
       targetIntensity = 2.2
       targetColor = COLORS.arc
-    } else if (frame.energized) {
+    } else if (poleEnergized) {
       targetIntensity = 0.55
       targetColor = COLORS.energized
     }
@@ -115,7 +118,7 @@ export function Conductor({
 
     // Bright core: visible only when energized/faulted; carries the bloom.
     if (coreRef.current && coreMatRef.current) {
-      const on = live || frame.energized
+      const on = live || poleEnergized
       coreRef.current.visible = on
       if (on) coreMatRef.current.color.lerp(tmpColor.set(live ? COLORS.arc : COLORS.energized), Math.min(1, delta * 8))
     }
