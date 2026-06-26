@@ -16,6 +16,10 @@ import { makeFacadeTexture } from './facadeTexture'
 const GROUND_Y = -30
 const SEED = 0x5eed
 const WINDOW_EMISSIVE = 1.1 // dusk window glow (×) — tune here
+/** The feeder/pole line runs along x=0 for the full depth of the scene — keep buildings clear of
+ * that corridor (plus margin for the crossarm width and road verge) so none sit in the
+ * distribution circuit's line of sight down the poles. */
+const CIRCUIT_HALF_WIDTH = 12
 
 // Depth bands: [count, rMin, rMax, hMin, hMax]
 const BANDS: Array<[number, number, number, number, number]> = [
@@ -52,12 +56,26 @@ export function Skyline({ centerZ, isDark }: { centerZ: number; isDark: boolean 
           // re-roll toward the forward (-z / side) arc
           angle = Math.PI * (0.5 + rand())
         }
-        const r = rMin + rand() * (rMax - rMin)
+        let r = rMin + rand() * (rMax - rMin)
+        // Keep clear of the feeder corridor (x≈0, running the full depth of the scene) — re-roll
+        // the angle/radius a few times rather than letting a building land on the circuit's
+        // line of sight down the pole line.
+        for (let tries = 0; tries < 8 && Math.abs(Math.cos(angle) * r) < CIRCUIT_HALF_WIDTH; tries++) {
+          angle = rand() * Math.PI * 2
+          r = rMin + rand() * (rMax - rMin)
+        }
+        let bx = Math.cos(angle) * r
+        const bz = Math.sin(angle) * r
+        // Fallback if every re-roll still landed in the corridor: push straight out to its edge,
+        // keeping the same side, so a building can never visually sit on the pole line.
+        if (Math.abs(bx) < CIRCUIT_HALF_WIDTH) {
+          bx = bx < 0 ? -CIRCUIT_HALF_WIDTH : CIRCUIT_HALF_WIDTH
+        }
         const isTower = band === 2 && rand() < 0.3
         const w = isTower ? 7 + rand() * 5 : 8 + rand() * 13
         const d = isTower ? 7 + rand() * 5 : 8 + rand() * 13
         const h = isTower ? hMax * (0.8 + rand() * 0.2) : hMin + rand() * (hMax - hMin)
-        pos.set(Math.cos(angle) * r, GROUND_Y + h / 2, centerZ + Math.sin(angle) * r)
+        pos.set(bx, GROUND_Y + h / 2, centerZ + bz)
         scl.set(w, h, d)
         ms.push(m.clone().compose(pos, q, scl))
         // Far band reads bluer/faded; near band fuller.

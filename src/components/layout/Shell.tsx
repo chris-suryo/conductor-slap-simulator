@@ -28,9 +28,16 @@ function Header() {
         <ApcLogo />
         <div className="h-40 w-px bg-edge" />
         <div className="min-w-0 flex-1 overflow-hidden">
-          <h1 className="truncate text-[64px] font-semibold leading-tight text-fg">Conductor Slap Simulator</h1>
-          <p className="truncate text-[32px] leading-tight text-fg-faint">
-            Presented by <span className="font-medium text-brand">{BRAND.presenter}</span> · {BRAND.name}
+          <h1 className="truncate text-[64px] font-semibold leading-tight text-fg">
+            Magnetic Force - Conductor Slapping Simulator
+          </h1>
+          <p className="truncate text-[64px] leading-tight text-fg-faint">
+            <span className="text-white">Presented by</span>{' '}
+            <span className="font-medium text-brand">{BRAND.presenter}</span> ·{' '}
+            {/* Only the "APC" word goes orange — the rest of BRAND.name stays the default
+                muted color, so this still tracks brand.ts if the name ever changes. */}
+            <span className="font-medium text-brand">{BRAND.name.split(' ')[0]}</span>{' '}
+            {BRAND.name.split(' ').slice(1).join(' ')}
           </p>
         </div>
       </div>
@@ -73,16 +80,38 @@ export function Shell() {
         )}
 
         <main className="csim-scroll flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto">
-          <div className="relative h-[40vh] shrink-0">
-            <Suspense
-              fallback={
-                <div className="grid h-full w-full place-items-center rounded-xl border border-edge bg-scene">
-                  <Spinner label="Loading scene…" />
-                </div>
-              }
+          {/* Fixed 40vh normally (room for the timeline/charts below). When the surrounding
+              chrome is hidden (presentation mode or the scene's own expand toggle), the scene
+              is the only thing in `main` — let its OUTER box fill the whole stage, but
+              letterbox the canvas itself to a fixed 16:9 (`aspect-video`, capped by
+              `max-h-full`/`max-w-full`) so an ultra-wide/tall viewport doesn't stretch the fixed
+              camera's FOV into mostly-empty sky/fog — without this the camera (tuned for a
+              ~4:3 box) reveals a lot of dark void on the sides with only the Source/Recloser
+              labels (drei Html, screen-projected) still legible. */}
+          <div
+            className={
+              chromeHidden
+                ? 'relative flex min-h-0 flex-1 items-center justify-center'
+                : 'relative h-[40vh] shrink-0'
+            }
+          >
+            <div
+              className={chromeHidden ? 'relative' : 'h-full w-full'}
+              // `aspect-ratio` needs ONE definite dimension to derive the other from — height
+              // fills the flex track, width is computed from it, then clamped if the viewport is
+              // narrower than 16:9 (tall/narrow window) so it never overflows sideways.
+              style={chromeHidden ? { aspectRatio: '16 / 9', height: '100%', width: 'auto', maxWidth: '100%' } : undefined}
             >
-              <DistributionScene />
-            </Suspense>
+              <Suspense
+                fallback={
+                  <div className="grid h-full w-full place-items-center rounded-xl border border-edge bg-scene">
+                    <Spinner label="Loading scene…" />
+                  </div>
+                }
+              >
+                <DistributionScene />
+              </Suspense>
+            </div>
           </div>
           {/* Timeline stays visible in presentation mode; only the expand toggle hides it.
               It's now 3x its old height with text matching the scene overlay's size, so

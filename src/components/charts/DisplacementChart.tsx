@@ -14,6 +14,20 @@ import { useScenarioStore } from '@/state/useScenarioStore'
 import { COLORS } from '@/utils/labels'
 import { useChartData, useChartTheme, useThrottledCursor } from './useChartData'
 
+// Distinct, theme-constant span colors.
+const SPAN1_COLOR = COLORS.healthy // green
+const SPAN2_COLOR = COLORS.energized // blue
+const SPAN3_COLOR = COLORS.fault // red
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
+      <span className="text-[39px] text-fg-muted">{label}</span>
+    </span>
+  )
+}
+
 export function DisplacementChart() {
   const result = useScenarioStore((s) => s.result)
   const data = useChartData()
@@ -24,14 +38,14 @@ export function DisplacementChart() {
 
   return (
     <Card className="flex flex-col">
-      <CardHeader eyebrow="Physics" title="Conductor clearance" large />
+      <CardHeader eyebrow="Physics" title="Conductor clearances" large />
       <div className="aspect-[4/3] w-full">
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="clearanceFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLORS.energized} stopOpacity={0.22} />
-                <stop offset="100%" stopColor={COLORS.energized} stopOpacity={0} />
+                <stop offset="0%" stopColor={SPAN3_COLOR} stopOpacity={0.22} />
+                <stop offset="100%" stopColor={SPAN3_COLOR} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={t.gridStroke} vertical={false} />
@@ -49,7 +63,10 @@ export function DisplacementChart() {
               contentStyle={t.tooltip}
               cursor={{ stroke: t.axisLine }}
               labelFormatter={(v) => `t = ${Number(v).toFixed(2)} s`}
-              formatter={(v: number) => [`${v.toFixed(2)} ft`, 'Clearance']}
+              formatter={(v: number, name: string) => [
+                `${v.toFixed(2)} ft`,
+                name === 'clearance1' ? 'Span 1' : name === 'clearance2' ? 'Span 2' : 'Span 3',
+              ]}
             />
             {/* Danger band: clearance at/under the slap threshold. */}
             <ReferenceLine
@@ -67,8 +84,26 @@ export function DisplacementChart() {
             />
             <Line
               type="monotone"
+              dataKey="clearance1"
+              stroke={SPAN1_COLOR}
+              strokeWidth={1.8}
+              dot={false}
+              isAnimationActive={false}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="clearance2"
+              stroke={SPAN2_COLOR}
+              strokeWidth={1.8}
+              dot={false}
+              isAnimationActive={false}
+              connectNulls
+            />
+            <Line
+              type="monotone"
               dataKey="clearance"
-              stroke={COLORS.energized}
+              stroke={SPAN3_COLOR}
               strokeWidth={1.8}
               dot={false}
               isAnimationActive={false}
@@ -76,6 +111,11 @@ export function DisplacementChart() {
             <ReferenceLine x={cursorS} stroke={t.playhead} strokeOpacity={0.55} strokeWidth={1} />
           </ComposedChart>
         </ResponsiveContainer>
+      </div>
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
+        <LegendDot color={SPAN1_COLOR} label="Span 1" />
+        <LegendDot color={SPAN2_COLOR} label="Span 2" />
+        <LegendDot color={SPAN3_COLOR} label="Span 3" />
       </div>
       <p className="mt-2 text-[39px] text-fg-faint">
         Surface-to-surface gap (ft). Touching the dashed line is a slap.

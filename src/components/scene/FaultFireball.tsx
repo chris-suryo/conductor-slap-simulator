@@ -38,6 +38,10 @@ interface Puff {
  * A small fireball + rising smoke puffs at the fault location (the REMOTE END of the faulted
  * span, at the dead-end pole) — replaces the earlier flickering arc line. Reads at a glance as
  * "something just burned here," distinct from the mid-span conductor-slap arc in FaultArc.tsx.
+ *
+ * Also reused at the MIDSPAN of SPAN 1 / SPAN 2 for an induced upstream fault — those spans
+ * carry the original downstream fault's through-current too, so `originGate` restricts the
+ * fireball to only the span that actually struck the induced fault (see `originSpan` below).
  */
 export function FaultFireball({
   phases,
@@ -46,6 +50,7 @@ export function FaultFireball({
   z,
   frames,
   dtMs,
+  originGate,
 }: {
   /** Every conductor involved in the fault — the fireball centers on their average position
    * (a single faulted phase for AG/BG/CG, the midpoint for an L-L pair, dead-center for ABC). */
@@ -55,6 +60,10 @@ export function FaultFireball({
   z: number
   frames: SimulationFrame[]
   dtMs: number
+  /** When set, only shows while `result.upstreamFaultEvent.originSpan` matches this span — used
+   * by the SPAN 1 / SPAN 2 midspan instances so through-current from the original downstream
+   * fault (which both upstream spans also carry) never lights the wrong span's fireball. */
+  originGate?: 1 | 2
 }) {
   const fireRef = useRef<THREE.Mesh>(null)
   const fireMatRef = useRef<THREE.MeshBasicMaterial>(null)
@@ -84,7 +93,8 @@ export function FaultFireball({
 
   useFrame((_, delta) => {
     const frame = frameFromArray(frames, dtMs, useScenarioStore.getState().cursorMs)
-    const show = frame.faultActive
+    const originOk = originGate == null || useScenarioStore.getState().result.upstreamFaultEvent?.originSpan === originGate
+    const show = frame.faultActive && originOk
 
     if (fireRef.current) fireRef.current.visible = show
     if (lightRef.current) lightRef.current.visible = show

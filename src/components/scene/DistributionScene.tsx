@@ -114,6 +114,27 @@ function SceneContent({ g }: { g: Geometry }) {
         frames={result.frames}
         dtMs={result.dtMs}
       />
+      {/* Same fireball, reused at the MIDSPAN of SPAN 1 / SPAN 2 — where an induced upstream
+          fault actually strikes (the conductors clash mid-span, not at a dead-end pole).
+          `originGate` keeps each instance dark unless ITS span is the one that struck. */}
+      <FaultFireball
+        phases={g.phases}
+        restX={g.restX}
+        attachY={ATTACH_Y}
+        z={(zP0 + zP1) / 2}
+        frames={span1Frames}
+        dtMs={result.dtMs}
+        originGate={1}
+      />
+      <FaultFireball
+        phases={g.phases}
+        restX={g.restX}
+        attachY={ATTACH_Y}
+        z={(zP1 + zP2) / 2}
+        frames={span2Frames}
+        dtMs={result.dtMs}
+        originGate={2}
+      />
     </group>
   )
 }
@@ -217,9 +238,9 @@ export function DistributionScene() {
           title={sceneExpanded ? 'Restore panels' : 'Expand scene'}
           aria-label={sceneExpanded ? 'Restore panels' : 'Expand scene'}
           aria-pressed={sceneExpanded}
-          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg border border-edge/60 bg-panel/70 text-fg-muted backdrop-blur transition-colors hover:border-brand hover:text-fg"
+          className="absolute right-3 top-3 grid h-24 w-24 place-items-center rounded-lg border border-edge/60 bg-panel/70 text-fg-muted backdrop-blur transition-colors hover:border-brand hover:text-fg"
         >
-          {sceneExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          {sceneExpanded ? <Minimize2 size={45} /> : <Maximize2 size={45} />}
         </button>
       )}
       <div className="pointer-events-none absolute left-3 top-3 flex max-w-[600px] items-center gap-3 rounded-lg border border-edge/60 bg-panel/70 px-4 py-2 backdrop-blur">

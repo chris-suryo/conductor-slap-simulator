@@ -14,11 +14,11 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-label="Toggle color theme"
       className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-lg border border-edge bg-panel-raised text-fg-muted transition-colors hover:border-edge-bright hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+        'flex h-24 w-24 items-center justify-center rounded-lg border border-edge bg-panel-raised text-fg-muted transition-colors hover:border-edge-bright hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
         className,
       )}
     >
-      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {isDark ? <Sun className="h-12 w-12" /> : <Moon className="h-12 w-12" />}
     </button>
   )
 }

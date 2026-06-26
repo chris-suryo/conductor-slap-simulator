@@ -8,11 +8,21 @@ export interface ChartPoint {
   force: number
   clearance: number
   separation: number
+  /** Span 1 (nearest the source) live clearance, ft — null once that span's frames run out. */
+  clearance1: number | null
+  /** Span 2 (mid pole → recloser) live clearance, ft — null once that span's frames run out. */
+  clearance2: number | null
+  /** Span 1 live force per length, N/m — null once that span's frames run out. */
+  force1: number | null
+  /** Span 2 live force per length, N/m — null once that span's frames run out. */
+  force2: number | null
 }
 
 /** Downsampled per-frame series for the charts (recomputed once per simulation). */
 export function useChartData(): ChartPoint[] {
   const result = useScenarioStore((s) => s.result)
+  const span1Frames = useScenarioStore((s) => s.span1Frames)
+  const span2Frames = useScenarioStore((s) => s.span2Frames)
   return useMemo(() => {
     const frames = result.frames
     const target = 260
@@ -25,10 +35,14 @@ export function useChartData(): ChartPoint[] {
         force: f.forcePerLenNPerM,
         clearance: Math.max(f.clearanceFt, 0),
         separation: f.pairSeparationFt,
+        clearance1: span1Frames[i] ? Math.max(span1Frames[i].clearanceFt, 0) : null,
+        clearance2: span2Frames[i] ? Math.max(span2Frames[i].clearanceFt, 0) : null,
+        force1: span1Frames[i] ? span1Frames[i].forcePerLenNPerM : null,
+        force2: span2Frames[i] ? span2Frames[i].forcePerLenNPerM : null,
       })
     }
     return pts
-  }, [result])
+  }, [result, span1Frames, span2Frames])
 }
 
 /** Cursor position (ms) sampled at a modest rate so charts don't re-render every frame. */

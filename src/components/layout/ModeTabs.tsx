@@ -11,13 +11,13 @@ export function ModeTabs() {
   const mode = useScenarioStore((s) => s.mode)
   const setMode = useScenarioStore((s) => s.setMode)
   return (
-    <div className="inline-flex rounded-lg border border-edge bg-panel-muted p-0.5">
+    <div className="inline-flex rounded-lg border border-edge bg-panel-muted p-1.5">
       {TABS.map((t) => (
         <button
           key={t.id}
           onClick={() => setMode(t.id)}
           className={cn(
-            'rounded-md px-3 py-1.5 text-[32px] font-medium transition-colors',
+            'rounded-md px-9 py-[18px] text-[96px] font-medium transition-colors',
             mode === t.id
               ? 'bg-brand/15 text-brand shadow-sm'
               : 'text-fg-muted hover:text-fg',

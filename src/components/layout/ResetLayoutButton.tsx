@@ -12,11 +12,11 @@ export function ResetLayoutButton({ className }: { className?: string }) {
       title="Reset panel widths"
       aria-label="Reset panel widths"
       className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-lg border border-edge bg-panel-raised text-fg-muted transition-colors hover:border-edge-bright hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+        'flex h-24 w-24 items-center justify-center rounded-lg border border-edge bg-panel-raised text-fg-muted transition-colors hover:border-edge-bright hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
         className,
       )}
     >
-      <Columns3 className="h-4 w-4" />
+      <Columns3 className="h-12 w-12" />
     </button>
   )
 }

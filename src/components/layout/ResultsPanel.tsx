@@ -155,8 +155,18 @@ function LiveStatus() {
 
 export function ResultsPanel() {
   const result = useScenarioStore((s) => s.result)
+  const scenario = useScenarioStore((s) => s.scenario)
+  const span1Frames = useScenarioStore((s) => s.span1Frames)
+  const span2Frames = useScenarioStore((s) => s.span2Frames)
   const final = FINAL_META[result.finalState]
-  const slapTone = result.slapOccurred ? 'text-fault' : 'text-healthy'
+  const span1Slapped = span1Frames.some((f) => f.contact === 'contact')
+  const span2Slapped = span2Frames.some((f) => f.contact === 'contact')
+  const span3Slapped = result.slapOccurred
+  // The orchestrator picks whichever device operates the PRIMARY fault — the recloser only when
+  // it's engaged (downstream fault, recloser enabled); otherwise the substation relay handles it
+  // directly on its own curve (mirrors `recloserEngaged` in runSimulation.ts). `result.tripTimeMs`
+  // is that single operating device's trip time, so it belongs to whichever stat matches.
+  const recloserEngaged = scenario.faultLocation === 'downstream' && scenario.protectionEnabled
 
   return (
     <div className="side-panel-zoom csim-scroll flex h-full flex-col gap-3 overflow-y-auto pl-1">
@@ -177,8 +187,12 @@ export function ResultsPanel() {
         )}
         <div className="grid grid-cols-2 gap-2">
           <Stat
+            label="Recloser trip"
+            value={recloserEngaged && result.tripTimeMs != null ? fmtMs(result.tripTimeMs) : 'No trip'}
+          />
+          <Stat
             label="Relay trip"
-            value={result.tripTimeMs == null ? 'No trip' : fmtMs(result.tripTimeMs)}
+            value={!recloserEngaged && result.tripTimeMs != null ? fmtMs(result.tripTimeMs) : 'NO TRIP'}
           />
           <Stat label="Trips" value={result.numTrips} />
           <Stat label="Max displacement" value={fmtFt(result.maxDisplacementFt)} />
@@ -188,9 +202,19 @@ export function ResultsPanel() {
             tone={result.slapOccurred ? 'text-fault' : 'text-fg'}
           />
           <Stat
-            label="Slap"
-            value={result.slapOccurred ? 'Yes' : 'No'}
-            tone={slapTone}
+            label="Span 1"
+            value={span1Slapped ? 'YES' : 'NO'}
+            tone={span1Slapped ? 'text-fault' : 'text-healthy'}
+          />
+          <Stat
+            label="Span 2"
+            value={span2Slapped ? 'YES' : 'NO'}
+            tone={span2Slapped ? 'text-fault' : 'text-healthy'}
+          />
+          <Stat
+            label="Span 3"
+            value={span3Slapped ? 'YES' : 'NO'}
+            tone={span3Slapped ? 'text-fault' : 'text-healthy'}
           />
           <Stat
             label="Slap time"
