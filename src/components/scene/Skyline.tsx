@@ -16,10 +16,9 @@ import { makeFacadeTexture } from './facadeTexture'
 const GROUND_Y = -30
 const SEED = 0x5eed
 const WINDOW_EMISSIVE = 1.1 // dusk window glow (×) — tune here
-/** The feeder/pole line runs along x=0 for the full depth of the scene — keep buildings clear of
- * that corridor (plus margin for the crossarm width and road verge) so none sit in the
- * distribution circuit's line of sight down the poles. */
-const CIRCUIT_HALF_WIDTH = 12
+/** The feeder/pole line runs along x=0 for the full depth of the scene — keep buildings at least
+ * 50 ft clear of the pole location so none crowd the distribution circuit. */
+const CIRCUIT_HALF_WIDTH = 50
 
 // Depth bands: [count, rMin, rMax, hMin, hMax]
 const BANDS: Array<[number, number, number, number, number]> = [

@@ -6,15 +6,19 @@ import type { Phase } from '@/simulation/types'
  * control cabinet, installed on the pole at the boundary between the upstream feeder and the
  * faulted downstream span. Geometry is intentionally simple/representative.
  */
+const GROUND_Y = -30 // matches POLE_HEIGHT (pole top/crossarm at y=0) in DistributionScene
+const CABINET_HEIGHT_FT = 5.2 // 2x the original 2.6 ft
+const CABINET_INSTALL_FT = 8 // cabinet bottom, ft above ground
+
 export function Recloser({ z, restX }: { z: number; restX: Record<Phase, number> }) {
   const bodyY = -2.2 // hangs just below the crossarm
-  const cabinetY = -16 // partway down the pole
+  const cabinetY = GROUND_Y + CABINET_INSTALL_FT + CABINET_HEIGHT_FT / 2 // installed 8 ft above ground
   return (
     <group position={[0, 0, z]}>
       {/* recloser tank / switch body */}
       <mesh position={[0, bodyY, 0.6]} castShadow>
         <boxGeometry args={[3.6, 1.5, 1.3]} />
-        <meshStandardMaterial color="#36424f" roughness={0.5} metalness={0.65} />
+        <meshStandardMaterial color="#959595" roughness={0.5} metalness={0.65} />
       </mesh>
       {/* three bushings on top of the tank */}
       {(['A', 'B', 'C'] as Phase[]).map((ph) => (
@@ -25,8 +29,8 @@ export function Recloser({ z, restX }: { z: number; restX: Record<Phase, number>
       ))}
       {/* control cabinet on the pole */}
       <mesh position={[1.15, cabinetY, 0.4]} castShadow>
-        <boxGeometry args={[1.7, 2.6, 1.2]} />
-        <meshStandardMaterial color="#55626f" roughness={0.6} metalness={0.45} />
+        <boxGeometry args={[3.4, CABINET_HEIGHT_FT, 1.2]} />
+        <meshStandardMaterial color="#959595" roughness={0.6} metalness={0.45} />
       </mesh>
       {/* control conduit down the pole */}
       <mesh position={[0.5, (bodyY + cabinetY) / 2, 0.35]}>

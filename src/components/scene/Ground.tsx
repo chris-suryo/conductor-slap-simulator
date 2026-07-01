@@ -11,7 +11,7 @@ import { makeNoiseTexture } from './groundTexture'
  */
 const GROUND_Y = -30 // matches POLE_HEIGHT in DistributionScene
 const LEN = 640 // road/grass extent along z (fog swallows the ends)
-const ROAD_CENTER_X = 9 // road offset so the pole line sits on the grass verge
+const ROAD_CENTER_X = 37 // road offset so the pole line (x=0) sits 30 ft off the road's near edge
 const ROAD_HALF_W = 7
 const DASH_STEP = 18
 const DASH_COUNT = Math.floor(LEN / DASH_STEP)
@@ -59,7 +59,7 @@ export function Ground({ centerZ }: { centerZ: number }) {
       {/* grass / earth base — noise map breaks the flat plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[600, LEN]} />
-        <meshStandardMaterial color={c.sceneGrass} map={grassTex} roughness={1} metalness={0} />
+        <meshStandardMaterial color="#96ae82" map={grassTex} roughness={1} metalness={0} />
       </mesh>
       {/* asphalt road, a hair above the grass to avoid z-fighting */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ROAD_CENTER_X, 0.02, 0]}>

@@ -29,7 +29,7 @@ export function SourceMarker({ z, y = 4 }: { z: number; y?: number }) {
           S
         </div>
         <div style={{ marginTop: 9, fontSize: 54, letterSpacing: '0.14em', color: '#FD8505', fontWeight: 600, whiteSpace: 'nowrap' }}>
-          SOURCE
+          SOURCE SIDE
         </div>
       </div>
     </Html>

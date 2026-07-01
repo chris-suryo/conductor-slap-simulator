@@ -119,9 +119,10 @@ export const SAG_REF_FT = 5
 /**
  * Anchor span (ft) at which the scenario `sagFt` is taken. Sag grows with span at fixed
  * stringing tension (parabola D = w*L^2 / 8H, so sag ∝ span^2), which is how longer spans
- * end up swinging more — see motionSolver.computeMechParams.
+ * end up swinging more — see motionSolver.computeMechParams. Matches DEFAULT_SCENARIO's
+ * SPAN 3 (faulted span) length, so the default scenario sits at the reference unscaled.
  */
-export const SPAN_REF_FT = 250
+export const SPAN_REF_FT = 200
 /** Clamp on the swing period to keep the model well-behaved (s). */
 export const SWING_PERIOD_MIN_S = 0.8
 export const SWING_PERIOD_MAX_S = 4.5

@@ -37,11 +37,11 @@ export function ForceChart() {
   const t = useChartTheme()
 
   return (
-    <Card className="flex flex-col">
+    <Card className="force-light flex flex-col">
       <CardHeader eyebrow="Physics" title="Magnetic force" large />
       <div className="aspect-[4/3] w-full">
         <ResponsiveContainer>
-          <ComposedChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 10, right: 56, left: 8, bottom: 30 }}>
             <defs>
               <linearGradient id="forceFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={SPAN3_COLOR} stopOpacity={0.45} />
@@ -58,7 +58,7 @@ export function ForceChart() {
               axisLine={{ stroke: t.axisLine }}
               tickLine={false}
             />
-            <YAxis tick={t.axisTick} width={64} axisLine={false} tickLine={false}>
+            <YAxis tick={t.axisTick} width={130} axisLine={false} tickLine={false}>
               <Label
                 value="N/m"
                 position="insideTopLeft"

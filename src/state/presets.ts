@@ -25,11 +25,10 @@ export const DEFAULT_PROTECTION: ProtectionSettings = {
   timeMultiplier: 0.8,
   definiteTimeMs: 200,
   breakerOpenTimeMs: 50,
-  shotsToLockout: 4, // 3 reclose attempts -> 4 trip operations before lockout
+  shotsToLockout: 3, // 2 reclose attempts -> 3 trip operations before lockout
   recloseShots: [
     { operation: 1, curveMode: 'inverse', recloseDelayMs: 200 }, // 12 cycles
     { operation: 2, curveMode: 'inverse', recloseDelayMs: 1500 }, // 1.5 s
-    { operation: 3, curveMode: 'inverse', recloseDelayMs: 10000 }, // 10 s
   ],
 }
 
@@ -66,6 +65,9 @@ export const RECORDED_EVENT_RECLOSER: ProtectionSettings = {
   ...DEFAULT_PROTECTION,
   phaseInstantaneousPickupA: 2500, // fast element armed (below the 3140 A fault)
   groundInstantaneousPickupA: 1500,
+  // The real field event reproduced here used 3 reclose attempts (4 trips) — kept explicit so
+  // it stays accurate even though the general "Shots to lockout" default/slider cap is now 3.
+  shotsToLockout: 4,
   recloseShots: [
     { operation: 1, curveMode: 'inverse', recloseDelayMs: 200 }, // 12 cyc; first op rides TOC
     { operation: 2, curveMode: 'instantaneous', recloseDelayMs: 1500 }, // re-trip instantaneous
@@ -75,9 +77,9 @@ export const RECORDED_EVENT_RECLOSER: ProtectionSettings = {
 
 export const DEFAULT_SCENARIO: Scenario = {
   voltageClassKv: 12.47,
-  spanLengthFt: 250,
-  secondSpanLengthFt: 180,
-  firstSpanLengthFt: 150,
+  spanLengthFt: 200,
+  secondSpanLengthFt: 250,
+  firstSpanLengthFt: 300,
   phaseSpacingFt: 3.5,
   sagFt: 4,
   faultCurrentA: 7500,
@@ -87,6 +89,7 @@ export const DEFAULT_SCENARIO: Scenario = {
   protection: DEFAULT_PROTECTION,
   substationRelay: DEFAULT_SUBSTATION_RELAY,
   faultLocation: 'downstream',
+  fuseSize: 'NA',
 }
 
 /** Structured-clone a scenario so store edits never mutate shared preset objects. */
@@ -150,7 +153,6 @@ export const PRESETS: ScenarioPreset[] = [
         recloseShots: [
           { operation: 1, curveMode: 'inverse', recloseDelayMs: 1150 },
           { operation: 2, curveMode: 'inverse', recloseDelayMs: 1150 },
-          { operation: 3, curveMode: 'inverse', recloseDelayMs: 1150 },
         ],
       },
     }),

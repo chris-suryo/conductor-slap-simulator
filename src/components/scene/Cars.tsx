@@ -11,7 +11,7 @@ import { SCENE_EMISSIVE } from '@/utils/labels'
  * never jitters when a conductor slaps.
  */
 const GROUND_Y = -30
-const ROAD_CENTER_X = 9
+const ROAD_CENTER_X = 37 // matches Ground.tsx — keep cars on the actual road surface
 const LANE = 2.6 // half-distance between the two travel lanes
 const BODY_Y = 0.55 // above the road surface
 const RANGE = 340 // z span the cars loop over (fog hides the ends)

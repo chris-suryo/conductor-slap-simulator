@@ -30,6 +30,9 @@ interface ScenarioState {
 
   // Scenario edits (each re-runs the simulation and replays from the start)
   patchScenario: (patch: Partial<Scenario>) => void
+  /** Like `patchScenario`, but keeps the active preset selected (e.g. "Protected") — changing
+   * just the fault magnitude is exploring that same teaching scenario, not leaving it. */
+  setFaultCurrent: (faultCurrentA: number) => void
   patchProtection: (patch: Partial<ProtectionSettings>) => void
   patchSubstationRelay: (patch: Partial<ProtectionSettings>) => void
   setFaultType: (faultType: FaultType) => void
@@ -74,6 +77,8 @@ export const useScenarioStore = create<ScenarioState>((set, get) => {
     activePresetId: 'protected',
 
     patchScenario: (patch) => rerun({ ...get().scenario, ...patch }, null),
+    setFaultCurrent: (faultCurrentA) =>
+      rerun({ ...get().scenario, faultCurrentA }, get().activePresetId),
     patchProtection: (patch) => {
       const s = get().scenario
       rerun({ ...s, protection: { ...s.protection, ...patch } }, null)

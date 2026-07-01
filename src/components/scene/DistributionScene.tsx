@@ -17,6 +17,7 @@ import { Crossarm } from './Crossarm'
 import { Span } from './Span'
 import { Recloser } from './Recloser'
 import { SourceMarker } from './SourceMarker'
+import { LoadSideMarker } from './LoadSideMarker'
 import { FaultFireball } from './FaultFireball'
 import { Ground } from './Ground'
 import { DistantPoles } from './DistantPoles'
@@ -57,6 +58,11 @@ function SceneContent({ g }: { g: Geometry }) {
   const result = useScenarioStore((s) => s.result)
   const span1Frames = useScenarioStore((s) => s.span1Frames)
   const span2Frames = useScenarioStore((s) => s.span2Frames)
+  // An upstream fault is physically on SPAN 1 itself (see `runSimulation`'s `activeSpanLengthFt`),
+  // so `result.frames` represents SPAN 1 there instead of SPAN 3 — move the moving/faulted span
+  // and its fireball accordingly. SPAN 2/3 fall back to the (now idle, no induced-fault current)
+  // witness arrays so they read as calm/de-energized rather than duplicating SPAN 1's motion.
+  const faultUpstream = useScenarioStore((s) => s.scenario.faultLocation === 'upstream')
 
   useFrame(() => {
     const st = useScenarioStore.getState()
@@ -91,26 +97,44 @@ function SceneContent({ g }: { g: Geometry }) {
         </group>
       ))}
 
-      {/* SPAN 1 (nearest the source) and SPAN 2 (upstream of the recloser) — each independently
-          modeled (own length/clearance/force); effects are ON for both since either can slap and
-          strike its own induced fault (see computeUpstreamSpanFrames). */}
-      <Span z0={zP0} z1={zP1} frames={span1Frames} {...shared} />
-      <Span z0={zP1} z1={zP2} frames={span2Frames} {...shared} />
-      {/* SPAN 3 — faulted / instrumented span (downstream of the recloser). */}
-      <Span z0={zP2} z1={zP3} frames={result.frames} {...shared} />
+      {faultUpstream ? (
+        <>
+          {/* SPAN 1 is the faulted/instrumented span for an upstream fault — `result.frames` is
+              its own motion (see `runSimulation`'s `activeSpanLengthFt`). SPAN 2/3 never carry
+              this fault's current (it terminates at the SPAN 1 fault point, upstream of the
+              recloser), so they fall back to the idle witness arrays — no swing, just following
+              the substation relay's overall feeder energization. */}
+          <Span z0={zP0} z1={zP1} frames={result.frames} {...shared} />
+          <Span z0={zP1} z1={zP2} frames={span2Frames} {...shared} />
+          <Span z0={zP2} z1={zP3} frames={span2Frames} {...shared} />
+        </>
+      ) : (
+        <>
+          {/* SPAN 1 (nearest the source) and SPAN 2 (upstream of the recloser) — each
+              independently modeled (own length/clearance/force); effects are ON for both since
+              either can slap and strike its own induced fault (see computeUpstreamSpanFrames). */}
+          <Span z0={zP0} z1={zP1} frames={span1Frames} {...shared} />
+          <Span z0={zP1} z1={zP2} frames={span2Frames} {...shared} />
+          {/* SPAN 3 — faulted / instrumented span (downstream of the recloser). */}
+          <Span z0={zP2} z1={zP3} frames={result.frames} {...shared} />
+        </>
+      )}
 
       {/* G&W recloser + control cabinet at P2. */}
       <Recloser z={zP2} restX={g.restX} />
       {/* Source / substation marker at P0. */}
       <SourceMarker z={zP0} />
-      {/* Fault fireball/smoke at the remote end of the faulted span (P3), centered on the average
+      {/* Load-side label at the remote end of SPAN 3 (always downstream of the recloser, physically — regardless of where the fault itself is located). */}
+      <LoadSideMarker z={zP3} />
+      {/* Fault fireball/smoke at the remote end of the faulted span — P1 (end of SPAN 1) for an
+          upstream fault, P3 (end of SPAN 3) for a downstream fault — centered on the average
           position of every faulted conductor — a single faulted phase for AG/BG/CG, the midpoint
           for an L-L pair, dead-center for ABC. */}
       <FaultFireball
         phases={g.phases}
         restX={g.restX}
         attachY={ATTACH_Y}
-        z={zP3}
+        z={faultUpstream ? zP1 : zP3}
         frames={result.frames}
         dtMs={result.dtMs}
       />
@@ -250,7 +274,8 @@ export function DistributionScene() {
         </span>
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 max-w-[550px] text-[39px] leading-snug text-fg-faint">
-        Source (S) at the substation end → G&amp;W recloser → faulted span {scenario.spanLengthFt} ft
+        Source (S) at the substation end → G&amp;W recloser → faulted span{' '}
+        {scenario.faultLocation === 'upstream' ? scenario.firstSpanLengthFt : scenario.spanLengthFt} ft
         with the L-L fault at its remote end. Lateral motion shown at ~{DISP_GAIN}× for clarity.
       </div>
     </div>

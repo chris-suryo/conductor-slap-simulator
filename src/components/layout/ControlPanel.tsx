@@ -1,6 +1,7 @@
 import { useScenarioStore } from '@/state/useScenarioStore'
 import { CONDUCTOR_CATALOG } from '@/simulation/conductorCatalog'
-import type { CurveType, FaultLocation, FaultType, ProtectionSettings } from '@/simulation/types'
+import { FUSE_OPTIONS } from '@/simulation/fuseCatalog'
+import type { CurveType, FaultLocation, FaultType, FuseSize, ProtectionSettings } from '@/simulation/types'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Slider } from '@/components/ui/Slider'
 import { Select } from '@/components/ui/Select'
@@ -120,6 +121,7 @@ export function ControlPanel() {
   const activePresetId = useScenarioStore((s) => s.activePresetId)
   const applyPreset = useScenarioStore((s) => s.applyPreset)
   const patchScenario = useScenarioStore((s) => s.patchScenario)
+  const setFaultCurrent = useScenarioStore((s) => s.setFaultCurrent)
   const patchProtection = useScenarioStore((s) => s.patchProtection)
   const patchSubstationRelay = useScenarioStore((s) => s.patchSubstationRelay)
   const setFaultType = useScenarioStore((s) => s.setFaultType)
@@ -186,7 +188,7 @@ export function ControlPanel() {
               {QUICK_MAGNITUDES.map((m) => (
                 <button
                   key={m}
-                  onClick={() => patchScenario({ faultCurrentA: m })}
+                  onClick={() => setFaultCurrent(m)}
                   className={cn(
                     'rounded-md border px-1 py-1.5 text-[11px] font-medium transition-colors',
                     scenario.faultCurrentA === m
@@ -205,7 +207,7 @@ export function ControlPanel() {
             min={1500}
             max={10000}
             step={100}
-            onChange={(v) => patchScenario({ faultCurrentA: v })}
+            onChange={(v) => setFaultCurrent(v)}
             format={fmtAmps}
             fill={COLORS.fault}
             hint="Drag to set the magnitude. Force between conductors scales with current²."
@@ -345,6 +347,19 @@ export function ControlPanel() {
             </p>
           </div>
 
+          <div>
+            <Select
+              label="FUSE"
+              value={scenario.fuseSize}
+              options={FUSE_OPTIONS}
+              onChange={(v) => patchScenario({ fuseSize: v as FuseSize })}
+            />
+            <p className="mt-1.5 text-[11px] leading-snug text-fg-faint">
+              Downstream fuse link, shown as a min-melt/max-clear band on the TCC chart for
+              coordination reference — it does not clear faults in the simulation itself.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-2.5">
             <DeviceSettingsColumn
               title="Recloser (downstream)"
@@ -401,7 +416,7 @@ export function ControlPanel() {
               label="Shots to lockout"
               value={p.shotsToLockout}
               min={1}
-              max={4}
+              max={3}
               step={1}
               disabled={protOff}
               onChange={(v) => patchProtection({ shotsToLockout: v })}

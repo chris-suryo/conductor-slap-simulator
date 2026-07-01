@@ -118,7 +118,7 @@ export function Shell() {
               `main` scrolls (above) rather than clipping it or squeezing the scene. */}
           {!sceneExpanded && <TimelinePanel />}
           {!chromeHidden && (
-            <div className="mx-auto grid w-[84.9%] shrink-0 grid-cols-3 gap-2 pb-3">
+            <div className="mx-auto grid w-[70%] shrink-0 grid-cols-3 gap-2 pb-3">
               <ForceChart />
               <DisplacementChart />
               <TccChart />

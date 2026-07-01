@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useScenarioStore } from '@/state/useScenarioStore'
-import { useThemeStore } from '@/state/useThemeStore'
 import { buildPalette } from '@/theme/tokens'
 
 export interface ChartPoint {
@@ -75,12 +74,13 @@ export interface ChartTheme {
   surface: string
 }
 
-/** Recharts styling — follows the app's active dark/light theme, same as every other panel. */
+/** Recharts styling — the 3 chart cards are pinned to a light "TCC paper" look (readable axis
+ * grid like a real coordination sheet) regardless of the app's dark/light theme; pair with the
+ * `.force-light` class on each chart's <Card> so the surrounding Tailwind chrome matches. */
 export function useChartTheme(): ChartTheme {
-  const resolved = useThemeStore((s) => s.resolved)
-  const c = useMemo(() => buildPalette(resolved), [resolved])
+  const c = useMemo(() => buildPalette('light'), [])
   return {
-    axisTick: { fontSize: 39, fill: c.text3 },
+    axisTick: { fontSize: 39, fill: c.text2 },
     gridStroke: c.gridLine,
     axisLine: c.edge,
     tooltip: {

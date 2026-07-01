@@ -3,6 +3,7 @@ import { Conductor } from './Conductor'
 import { ForceArrows } from './ForceArrows'
 import { MagneticFieldRings } from './MagneticFieldRings'
 import { FaultArc } from './FaultArc'
+import { NeutralConductor } from './NeutralConductor'
 
 /** Every unique conductor pair, used to render one slap arc per pair for a 3-phase fault. */
 const ALL_PAIRS: { a: Phase; b: Phase }[] = [
@@ -63,6 +64,15 @@ export function Span({
           dtMs={dtMs}
         />
       ))}
+      <NeutralConductor
+        restX={restX.B}
+        z0={z0}
+        z1={z1}
+        attachY={attachY}
+        isGroundFault={phases.length === 1}
+        frames={frames}
+        dtMs={dtMs}
+      />
       {showEffects && (
         <>
           <ForceArrows phases={phases} {...shared} />

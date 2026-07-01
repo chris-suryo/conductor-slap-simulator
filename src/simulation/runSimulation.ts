@@ -217,13 +217,20 @@ export interface SimTuning {
 
 export function runSimulation(scenario: Scenario, tuning: SimTuning = {}): SimulationResult {
   const conductor = getConductor(scenario.conductorTypeId)
-  const mp = computeMechParams(scenario, conductor)
+  // The instrumented/primary span is whichever one actually carries the fault: SPAN 3
+  // (downstream of the recloser) for a downstream fault, or SPAN 1 (nearest the source, between
+  // it and the mid pole) for an upstream fault — see `Scenario.faultLocation`. Everything below
+  // (mass/sag/swing-period/force) uses THIS span's own length, so `result.frames` always
+  // represents whichever span is physically faulted.
+  const activeSpanLengthFt =
+    scenario.faultLocation === 'upstream' ? scenario.firstSpanLengthFt : scenario.spanLengthFt
+  const mp = computeMechParams({ ...scenario, spanLengthFt: activeSpanLengthFt }, conductor)
   const forceGain = tuning.forceGain ?? EDU_FORCE_GAIN
   // When the relay never trips, clear near the first outward swing peak (~half a swing
   // period), where the conductor is at maximum displacement with ~zero velocity — so the
   // rebound is large and the slap is reliable rather than phase-dependent.
   const noProtClearMs = tuning.noProtClearMs ?? Math.min(1400, Math.max(350, 0.5 * mp.swingPeriodS * 1000))
-  const spanM = ftToM(scenario.spanLengthFt)
+  const spanM = ftToM(activeSpanLengthFt)
   const spacingM = ftToM(scenario.phaseSpacingFt)
   const diameterFt = conductorDiameterFt(conductor)
   const thresholdFt = CONTACT_THRESHOLD_FT
@@ -538,11 +545,15 @@ export function computeUpstreamSpanFrames(
     // The ORIGINAL downstream fault (before the recloser clears it) flows through BOTH upstream
     // spans (they're in series toward the recloser) — `pf.faultActive` already reflects that for
     // both, no origin distinction needed. Once an INDUCED fault fires, SPAN 1 keeps carrying it
-    // regardless of origin; SPAN 2 only carries it if SPAN 2 itself is the origin.
+    // regardless of origin; SPAN 2 only carries it if SPAN 2 itself is the origin. For an UPSTREAM
+    // fault, `pf` is the primary span-1 fault itself (see `runSimulation`'s `activeSpanLengthFt`)
+    // — it doesn't flow through these two independently-modeled witness spans at all, so ignore it
+    // here (only an induced strike, which is downstream-only, can move these).
+    const downstreamFault = scenario.faultLocation === 'downstream'
     const inducedActive = upSnap?.faultActive ?? false
-    const span1FaultActive = pf.faultActive || inducedActive
+    const span1FaultActive = (downstreamFault && pf.faultActive) || inducedActive
     const span1Current = inducedActive ? inducedI : I
-    const span2FaultActive = pf.faultActive || (inducedActive && originSpan === 2)
+    const span2FaultActive = (downstreamFault && pf.faultActive) || (inducedActive && originSpan === 2)
     const span2Current = inducedActive && originSpan === 2 ? inducedI : I
 
     const mech1 = faultForces(geom, osc1, restX, span1FaultActive, span1Current, EDU_FORCE_GAIN, spanM1)

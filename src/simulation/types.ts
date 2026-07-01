@@ -85,6 +85,14 @@ export interface ProtectionSettings {
 /** Where the fault sits relative to the recloser on the radial feeder. */
 export type FaultLocation = 'downstream' | 'upstream'
 
+/**
+ * Downstream fuse link size, drawn as a min-melt/max-clear band on the TCC chart only —
+ * it's a visual coordination reference and does NOT participate in the simulation physics
+ * (the recloser/relay still clear every fault in this model). `NA` = no fuse installed.
+ * T = slow-speed link, K = fast-speed link (EEI/NEMA preferred ratings).
+ */
+export type FuseSize = 'NA' | '30T' | '40T' | '50T' | '65T' | '80T' | '100T' | '140K' | '200K'
+
 export interface Scenario {
   voltageClassKv: number
   /** Length of SPAN 3 — the faulted span (downstream of the recloser, furthest from the
@@ -114,6 +122,8 @@ export interface Scenario {
    * recloser for a fault on its source side).
    */
   faultLocation: FaultLocation
+  /** Downstream fuse link, if any — TCC display only (see `FuseSize`). */
+  fuseSize: FuseSize
   /**
    * When true, the fault is treated as a genuine persistent fault (e.g. a downed conductor),
    * so every reclose re-strikes regardless of conductor position — the device sequences through
